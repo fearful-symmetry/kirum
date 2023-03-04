@@ -1,0 +1,31 @@
+{
+    "dipthong_shift": [
+        {
+            "letter_replace": {
+                "letter":{"old":"ü", "new": "ū"},
+                "replace": "all"
+            }
+        },
+        {
+            "letter_replace": {
+                "letter":{"old":"ä", "new": "ā"},
+                "replace": "all"
+            }
+        }
+    ],
+    "from-consonant-root:reflexive": [
+        {
+            "letter_array": {
+                "letters":[0, "ū", 1, "u", 2]
+            }
+        }
+    ],
+    "noun:nominative": [
+        {
+            "postfix": {"value": "uh"}
+        }
+    ],
+    "loanword": [
+        "loanword"
+    ]
+}

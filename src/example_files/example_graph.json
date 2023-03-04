@@ -1,0 +1,62 @@
+{
+    "words": {
+        "root-rsk":{   
+            "type": "root",
+            "word": ["r", "s", "k"],
+            "language": "Old Rauhuk",
+            "definition": "means so-and-so..."
+        },
+        "stem-reflexive-rsk":{
+            "type": "stem",
+            "language": "Old Rauhuk",
+            "definition": "a steam meaning...",
+            "etymology": {
+                "etymons": [
+                    {
+                        "etymon": "root-rsk",
+                        "transform": "from-consonant-root:reflexive"
+                    }
+                ]
+            }
+        },
+        "stem-other-word":{
+            "type": "stem",
+            "word": "siruk",
+            "language": "Modern Ruhuk",
+            "definition": "a totally different stem meaning..."
+        },
+        "agglutinated-word":{
+            "type": "word",
+            "language": "Modern Ruhuk",
+            "definition": "a combination of these two other words...",
+            "etymology":{
+                "etymons":[
+                    {
+                        "etymon": "stem-reflexive-rsk",
+                        "transform": "loanword",
+                        "agglutination_order": 1
+                    },
+                    {
+                        "etymon": "stem-other-word",
+                        "transform": "loanword",
+                        "agglutination_order": 2
+                    }
+                ]
+            }
+        },
+        "word-reflexive-noun-rsk":{
+            "type": "word",
+            "language": "Old Rauhuk",
+            "definition": "a noun meaning...",
+            "part_of_speech": "noun",
+            "etymology": {
+                "etymons": [
+                    {
+                        "etymon": "stem-reflexive-rsk",
+                        "transform": "noun:nominative"
+                    }
+                ]
+            }
+        }
+    }
+}

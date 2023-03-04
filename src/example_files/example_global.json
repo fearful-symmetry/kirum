@@ -1,0 +1,39 @@
+{
+    "genitive":{
+        "matches":{
+            "lexis":{
+                "type": {
+                    "match":{
+                        "equals": "stem"
+                    }
+                },
+                "tags":{
+                    "match":{
+                        "oneof":["genitive"]
+                    }
+                },
+                "pos":{
+                    "not":{
+                        "equals":"noun"
+                    }
+                }
+            },
+            "etymon":{
+                "all":{
+                    "type": {
+                        "match":{
+                            "equals": "root"
+                        }
+                    }
+                }
+            }
+        },
+        "transform":[
+            {
+                "letter_array": {
+                    "letters":[0, "ū", 1, "u", 2]
+                }
+            }
+        ]
+    }
+}
