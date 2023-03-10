@@ -4,7 +4,8 @@ use regex::Regex;
 use crate::{transforms, transforms::LetterRemovePosition, transforms::LetterArrayValues};
 
 
-#[derive(Debug, Clone, Copy, Deserialize, Serialize)]
+
+#[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq)]
 pub enum PartOfSpeech {
     #[serde(rename = "noun")]
     Noun,

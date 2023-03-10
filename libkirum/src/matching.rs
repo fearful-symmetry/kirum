@@ -1,8 +1,5 @@
-use std::collections::HashMap;
-use serde_json::from_str;
 use serde::{Deserialize, Serialize};
 use crate::transforms::TransformFunc;
-use crate::errors::LangError;
 use crate::kirum::Lexis;
 use crate::word::{Word, PartOfSpeech};
 
@@ -182,30 +179,52 @@ impl Match {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct GlobalMatch{
     pub matches: Match,
-    pub transform: Vec<TransformFunc>
+    pub transform: Vec<TransformFunc>,
+    pub when: WhenMatch
 }
 
-pub fn global_matches_from_file(filepath: String) -> Result<HashMap<String, GlobalMatch>, LangError>{
-    let match_raw = std::fs::read_to_string(filepath).map_err(LangError::JSONImportError)?;
-    let matches: HashMap<String, GlobalMatch> = from_str(&match_raw).map_err(LangError::JSONSerdeError)?;
-
-    Ok(matches)
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub enum WhenMatch{
+    /// Before will match a lexis before it has been transformed by any other non-global transforms
+    #[serde(alias="before")]
+    Before,
+    /// After will match a lexis after a word has been genterated for that lexis
+    #[serde(alias="after")]
+    After
 }
+
+// pub fn global_matches_from_file(filepath: String) -> Result<Vec<GlobalMatch>, LangError>{
+//     let match_raw = std::fs::read_to_string(filepath).map_err(LangError::JSONImportError)?;
+//     let matches: Vec<GlobalMatch> = from_str(&match_raw).map_err(LangError::JSONSerdeError)?;
+
+//     Ok(matches)
+// }
 
 
 #[cfg(test)]
 mod tests {
 
+    use serde_json::from_str;
+
     use crate::errors::LangError;
     use crate::kirum::Lexis;
     use crate::matching::{Value, ValueMatch, EtymonMatch, LexisMatch, EqualValue};
-    use crate::matching::global_matches_from_file;
+
+    use super::GlobalMatch;
+   // use crate::matching::global_matches_from_file;
+
+    pub fn global_matches_from_file(filepath: String) -> Result<Vec<GlobalMatch>, LangError>{
+        let match_raw = std::fs::read_to_string(filepath).map_err(LangError::JSONImportError)?;
+        let matches: Vec<GlobalMatch> = from_str(&match_raw).map_err(LangError::JSONSerdeError)?;
+    
+        Ok(matches)
+    }
 
     #[test]
     fn test_file_ingest()->Result<(), LangError>{
 
         let matches = global_matches_from_file("src/example_files/example_global.json".to_string())?;
-        let main_match = matches.get("genitive").unwrap().clone();
+        let main_match = matches[0].clone();
 
         let match_lexis = main_match.matches.lexis;
         assert_eq!(match_lexis.lexis_type, Some(Value::Match(ValueMatch::Equals(EqualValue::String("stem".to_string())))));
@@ -216,8 +235,8 @@ mod tests {
         assert_eq!(match_etymon, EtymonMatch::All(LexisMatch{id: None, word: None, language: None, pos: None, lexis_type: Some(Value::Match(ValueMatch::Equals(EqualValue::String("root".to_string())))), archaic: None, tags: None}));
 
 
-        for (match_name, word_match) in matches{
-            println!("Got match {}: {:?}", match_name, word_match);
+        for word_match in matches{
+            println!("Got match: {:?}", word_match);
         };
 
         Ok(())

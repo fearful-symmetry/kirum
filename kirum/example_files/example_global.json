@@ -1,5 +1,5 @@
-{
-    "genitive":{
+[    
+    {
         "matches":{
             "lexis":{
                 "type": {
@@ -34,6 +34,7 @@
                     "letters":[0, "ū", 1, "u", 2]
                 }
             }
-        ]
+        ],
+        "when": "before"
     }
-}
+]

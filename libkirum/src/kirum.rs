@@ -1,13 +1,15 @@
+
 use crate::transforms::TransformFunc;
 use crate::word::{Word, PartOfSpeech};
-use crate::reader::{self, RawLexicalEntry, WordGraph};
-use crate::errors::LangError;
+use petgraph::dot::{Dot, Config};
+
+use petgraph::stable_graph::NodeIndex;
 
 use petgraph::{Graph, visit::EdgeRef};
-use std::collections::HashMap;
 
 
-#[derive(Clone)]
+
+#[derive(Clone, PartialEq)]
 pub struct Lexis {
     pub id: String,
     pub word: Option<Word>,
@@ -17,19 +19,6 @@ pub struct Lexis {
     pub definition: String,
     pub archaic: bool,
     pub tags: Vec<String>
-}
-
-impl From<RawLexicalEntry> for Lexis{
-    fn from(source: RawLexicalEntry) -> Self {
-        Lexis { id: String::new(), 
-            word: source.word, 
-            language: source.language.unwrap_or("".to_string()), 
-            pos: source.part_of_speech, 
-            lexis_type: source.word_type.unwrap_or("".to_string()), 
-            definition: source.definition, 
-            archaic: source.archaic,
-            tags: source.tags.unwrap_or(Vec::new())}
-    }
 }
 
 impl Default for Lexis{
@@ -65,6 +54,8 @@ impl std::fmt::Debug for Lexis {
     }
 }
 
+
+
 #[derive(Clone)]
 pub struct Transform {
     pub name: String,
@@ -91,79 +82,103 @@ impl Transform{
 
 pub struct LanguageTree {
     //the Node type represents a lexical entry, the edge is a tuple of the transform, and a "holding" string that's used to "trickle down" words as they're generated
-    graph: Graph<Lexis, (Transform, Option<Word>)>
+    graph: Graph<Lexis, (Transform, Option<Word>)>,
+
+    
 }
 
+/// LanguageTree stores the working state of a language graph.
 impl LanguageTree {
-    pub fn new_from_files(transform_filepath: String, graph_filepath: String) -> Result<Self, LangError> {
-        // transformation rules
-        let transform_list = reader::get_transforms(transform_filepath)?;
-        let trans_raw = std::fs::read_to_string(graph_filepath).map_err(LangError::JSONImportError)?;
-        // words
-        let raw_graph: WordGraph = serde_json::from_str(&trans_raw).map_err(LangError::JSONSerdeError)?;
-        let raw_map = reader::render_graph(raw_graph, transform_list)?;
-        // generate
-        let mut tree = LanguageTree { graph: raw_map };
-        tree.compute_lexicon();
-    
-        Ok(tree)
-    }
-    /// create a new language tree from  a map of transforms 
-    pub fn new(transforms: HashMap<String, Vec<TransformFunc>>, graph: WordGraph) -> Result<Self, LangError> {
-        let raw_map = reader::render_graph(graph, transforms)?;
-        let mut tree = LanguageTree { graph: raw_map };
-        tree.compute_lexicon();
+    pub fn new() -> Self {
+        LanguageTree {graph: Graph::<Lexis, (Transform, Option<Word>), petgraph::Directed>::new()}
 
-        Ok(tree)
     }
-    /// reduce the language graph to a dictionary of words that match the provided function
-    pub fn reduce_to_dict<F>(self, filter: F) -> Vec<Lexis>
-    where
-    F: Fn(&Lexis) -> bool,
-    {
-        let mut dict: Vec<Lexis> = Vec::new();
-        for node in self.graph.node_indices(){
-            if self.graph[node].word.is_some() && filter(&self.graph[node]) {
-                dict.push(self.graph[node].clone());
+
+    /// Adds a single lexis entry to the language tree. 
+    pub fn add_lexis(&mut self, lex: Lexis){
+        self.graph.add_node(lex);
+    }
+
+    /// A quick and ugly helper that returns a graphviz.dot render of the graph. Useful for debugging.
+    pub fn graphviz(&self) -> String{
+       format!("{:?}", Dot::with_config(&self.graph, &[Config::EdgeNoLabel])) 
+    }
+
+    /// creates an etymological link between two words: an upstream etymon, and a base word. If neither word exists, they will be added.
+    pub fn connect_etynmology(&mut self, lex: Lexis, etymon: Lexis, trans: Transform){
+        let mut lex_idx: Option<NodeIndex> = None;
+        let mut ety_idx: Option<NodeIndex> = None;
+
+        //no word in tree, add both of them
+        if self.graph.node_count() == 0{
+            lex_idx = Some(self.graph.add_node(lex.clone()));
+            ety_idx = Some(self.graph.add_node(etymon.clone()));
+        }
+
+        if ety_idx.is_none() && lex_idx.is_none(){
+           for nx in self.graph.node_indices(){ 
+                if &self.graph[nx] == &lex && lex_idx.is_none(){
+                    lex_idx = Some(nx);
+                    continue;
+                }
+                if &self.graph[nx] == &etymon && ety_idx.is_none(){
+                    ety_idx = Some(nx);
+                    continue;
+                }
+                if ety_idx.is_some() && lex_idx.is_some(){
+                    break;
+                }
             }
         }
-        dict.sort_by_key(|k| k.word.clone().unwrap());
-        dict
+
+        if lex_idx.is_none(){
+            lex_idx = Some(self.graph.add_node(lex.clone()));
+        }
+        if ety_idx.is_none(){
+            ety_idx = Some(self.graph.add_node(etymon));
+        }
+
+        self.graph.add_edge(ety_idx.unwrap(), lex_idx.unwrap(), (trans, None));
+
     }
 
-    /// Fill out the graph, walking the structure until all possible words have been generated
-    pub fn compute_lexicon(&mut self) {
+    /// Fill out the graph, walking the structure until all possible words have been generated.
+    /// This returns a rendered tree that represents the final computed language family.
+    pub fn compute_lexicon(&mut self) -> RenderedTree{
         let mut incomplete = true;
-    
+        let mut rendered = self.graph.clone();
         // for each node:
         // if the node has a hard-coded word, write transformed words to downstream edges
         // if all upstream edges are filled, write the word
         while incomplete {
             let mut changes = 0;
-            for node in self.graph.node_indices(){
+            for node in rendered.node_indices(){
+
                 //we have a hard-coded word
-                if self.graph[node].word.is_some(){
+                if rendered[node].word.is_some(){
                     // iterate over downstream edges
-                    for edge in self.graph.clone().edges_directed(node, petgraph::Direction::Outgoing){
+                    for edge in rendered.clone().edges_directed(node, petgraph::Direction::Outgoing){
                         if edge.weight().1.is_some(){
                             continue
                         }
                         //we have an unfilled edge, generate stem
                         let mut existing = edge.weight().clone();
-                        let transformed = existing.0.transform(&self.graph[node]);
-                        println!("updated edge with word {:?}", transformed.word);
+                        let transformed = existing.0.transform(&rendered[node]);
+                        //println!("updated edge with word {:?}", transformed.word);
                         existing.1 = transformed.word;
                         changes+=1;
     
                         let node_target = edge.target();
-                        self.graph.update_edge(node, node_target, existing);
+                            rendered.update_edge(node, node_target, existing);
                        
                     }
                 } else {
                     // we have a node with no word, see if we can fill it
+                    // globals should go here?
                     let mut is_ready = true;
                     let mut upstreams: Vec<(i32, Word)> = Vec::new();
-                    for edge in self.graph.clone().edges_directed(node, petgraph::Direction::Incoming){
+                    
+                    for edge in rendered.clone().edges_directed(node, petgraph::Direction::Incoming){
                         if edge.weight().1.is_none(){
                             // word still has unpopulated edges, give up
                             is_ready = false;
@@ -171,24 +186,52 @@ impl LanguageTree {
                         }
                         let order = edge.weight().0.agglutination_order.unwrap_or(0);
                         upstreams.push((order, edge.weight().1.clone().unwrap()));
+                        
                     }
                     if is_ready{
                         changes+=1;
-                        let rendered = join_string_vectors(&mut upstreams);
-                        println!("updated node with word: {:?}", rendered);
-                        self.graph[node].word = Some(rendered);
+                        let rendered_word = join_string_vectors(&mut upstreams);
+                        //println!("updated node with word: {:?}", rendered_word);
+                        rendered[node].word = Some(rendered_word);
                     }
                 }
     
             }
-            println!("made {} changes", changes);
+            //println!("made {} changes", changes);
             if changes == 0 {
                 incomplete = false;
             }
         }
+
+        RenderedTree { graph: rendered }
     }
 
-   // pub fn add_lexis(lexis: )
+}
+
+
+/// RenderedTree is the final generated language family tree, as generated by a LanguageTree object.
+pub struct RenderedTree {
+    graph: Graph<Lexis, (Transform, Option<Word>)>,
+}
+
+impl RenderedTree{
+        /// reduce the language graph to a vector of words that match the provided function.
+        pub fn reduce_to_dict<F>(self, filter: F) -> Vec<Lexis>
+        where
+        F: Fn(&Lexis) -> bool,
+        {
+            let mut dict: Vec<Lexis> = Vec::new();
+            for node in self.graph.node_indices(){
+                if self.graph[node].word.is_some() && filter(&self.graph[node]) {
+                    dict.push(self.graph[node].clone());
+                }
+            }
+            dict.sort_by_key(|k| k.word.clone().unwrap());
+            dict
+        }
+        pub fn graphviz(&self) -> String{
+            format!("{:?}", Dot::with_config(&self.graph, &[Config::EdgeNoLabel]))  
+         }
 }
 
 fn join_string_vectors(words: &mut Vec<(i32, Word)>) -> Word{
