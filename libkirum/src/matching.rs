@@ -127,8 +127,7 @@ fn value_matches<T>(val: &Option<Value>, to_match: &T) -> bool
 
 impl PartialEq<Lexis> for LexisMatch{
     fn eq(&self, other: &Lexis) -> bool {
-        value_matches(&self.id, &other.id) & 
-        if let Some(word) = &other.word {value_matches(&self.word, word)} else{true} &
+        if let Some(word) = &other.word {value_matches(&self.word, word);} else{true;} &
         value_matches(&self.language, &other.language) &
         if let Some(pos) = other.pos{value_matches(&self.pos, &pos)} else{true} &
         value_matches(&self.lexis_type, &other.lexis_type) &
@@ -244,7 +243,7 @@ mod tests {
 
     #[test]
     fn test_lexis_match()-> Result<(), LangError>{
-        let test_lexis = Lexis{id: "test-word".to_string(), 
+        let test_lexis = Lexis{
         word: Some("kirum".into()), 
         lexis_type: "".to_string(),
         language: "Old Babylonian".to_string(),

@@ -1,4 +1,5 @@
 ## TODO:
 - more options for LetterReplaceType
 - global rules for transforms?
-- clean up regex
+- word generate from phonetic rulesets?
+- verbose mode

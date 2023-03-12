@@ -9,21 +9,21 @@ use petgraph::{Graph, visit::EdgeRef};
 
 
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, serde::Deserialize, serde::Serialize)]
 pub struct Lexis {
-    pub id: String,
     pub word: Option<Word>,
     pub language: String,
     pub pos: Option<PartOfSpeech>,
     pub lexis_type: String,
     pub definition: String,
     pub archaic: bool,
+    #[serde(skip)]
     pub tags: Vec<String>
 }
 
 impl Default for Lexis{
     fn default() -> Self {
-        Lexis { id: String::new(), 
+        Lexis {
             word: None, 
             language: String::new(), 
             pos: None, 

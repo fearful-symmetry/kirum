@@ -45,11 +45,19 @@ pub struct Edge {
 
 
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Deserialize, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 #[serde(untagged)]
 pub enum Word {
     Letters(Vec<String>),
     String(String),
+}
+
+impl Serialize for Word{
+ fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+     where
+         S: serde::Serializer {
+     serializer.serialize_str(&self.to_string())
+ }
 }
 
 impl Word{

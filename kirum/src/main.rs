@@ -4,29 +4,58 @@ use clap::Parser;
 use anyhow::{Result, Context};
 use entries::RawLexicalEntry;
 use libkirum::{kirum::{LanguageTree, Transform, Lexis}, transforms::TransformFunc};
-use std::{collections::HashMap};
+use std::{collections::HashMap, fs::File, io::Write};
 use serde::{Deserialize, Serialize};
+use csv::WriterBuilder;
+use handlebars::Handlebars;
 
 fn main() -> Result<()> {
     let cli = cli::Args::parse();
 
-    // let transforms = String::from("./example_files/example_transforms.json");
-    // let graph = String::from("./example_files/example_graph.json");
     let mut lang_tree = read_from_files(cli.transforms, cli.graph)?;
     println!("rendering...");
     let computed = lang_tree.compute_lexicon();
 
-    match cli.command{
+    let out_data: String = match cli.command{
         cli::Commands::Graphviz =>{
-            println!("{}", computed.graphviz())
+            computed.graphviz()
         },
-        cli::Commands::Print =>{
+        cli::Commands::Render{command} =>{
             let rendered_dict = computed.reduce_to_dict(|_w|true);
-            for word in rendered_dict{
-                println!("{:?}", word);
+            match command{
+                cli::Format::Line =>{
+                    let mut acc = String::new();
+                    for word in rendered_dict {
+                        acc = format!("{}\n{:?}", acc, word)
+                    }
+                    acc
+                },
+                cli::Format::CSV =>{
+                    let mut wrt = WriterBuilder::new().has_headers(true).from_writer(vec![]);
+                    for word in rendered_dict {
+                        wrt.serialize(word)?;
+                        
+                    }
+                   String::from_utf8(wrt.into_inner()?)?
+                },
+                cli::Format::Template { template_file } =>{
+                    let template_string = std::fs::read_to_string(template_file)?;
+                    let mut reg = Handlebars::new();
+                    reg.render_template(&template_string, &rendered_dict)?
+
+                }
+                
             }
         }
+    };
+
+    if let Some(out_path) = cli.output{
+        let mut out_file = File::create(out_path)?;
+        write!(out_file, "{}", out_data)?;
+    }else {
+        println!("{}", out_data);    
     }
+    
 
     Ok(())
 }

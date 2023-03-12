@@ -11,6 +11,9 @@ pub struct Args {
     /// json file of a language graph
     #[clap(short, long, value_parser, default_value_t = String::from("graph.json"))]
     pub graph: String,
+    /// Output file; defaults to stdout if unspecified
+    #[clap(short, long, value_parser)]
+    pub output: Option<String>,
 
     #[clap(subcommand)]
     pub command: Commands
@@ -21,5 +24,18 @@ pub enum Commands{
     /// Print a graphviz representation of the language
     Graphviz,
     /// Print the rendered dictionary to stdout
-    Print
+    Render{
+        #[clap(subcommand)]
+        command: Format
+    }
+}
+
+#[derive(clap::Subcommand, Clone)]
+pub enum Format{
+    Line,
+    CSV,
+    Template{
+        #[clap(short, long, value_parser, default_value_t = String::from("template.tmpl"))]
+        template_file: String
+    }
 }

@@ -6,6 +6,7 @@ use serde::{Serialize, Deserialize};
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct RawLexicalEntry {
     pub word: Option<Word>,
+    #[serde(rename = "type")]
     pub word_type: Option<String>,
     pub language: Option<String>,
     #[serde(default)]
@@ -23,7 +24,7 @@ fn default_archaic() ->bool{
 
 impl From<RawLexicalEntry> for Lexis{
     fn from(source: RawLexicalEntry) -> Self {
-        Lexis { id: String::new(), 
+        Lexis { 
             word: source.word, 
             language: source.language.unwrap_or("".to_string()), 
             pos: source.part_of_speech, 
