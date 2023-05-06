@@ -17,15 +17,6 @@
                         "equals":"noun"
                     }
                 }
-            },
-            "etymon":{
-                "all":{
-                    "type": {
-                        "match":{
-                            "equals": "root"
-                        }
-                    }
-                }
             }
         },
         "transform":[

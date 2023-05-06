@@ -1,16 +1,18 @@
-
-use crate::transforms::TransformFunc;
-use crate::word::{Word, PartOfSpeech};
+use crate::transforms::Transform;
+use crate::word::{Word, PartOfSpeech, Etymology, Edge};
+use petgraph::Direction::Incoming;
 use petgraph::dot::{Dot, Config};
-
+use petgraph::graph::EdgeReference;
 use petgraph::stable_graph::NodeIndex;
-
 use petgraph::{Graph, visit::EdgeRef};
 
 
 
-#[derive(Clone, PartialEq, serde::Deserialize, serde::Serialize)]
+#[derive(Clone, Default, PartialEq, serde::Deserialize, serde::Serialize)]
+/// A Lexis represents a single entry in the language tree, be it a word, word stem, morpheme, etc.
 pub struct Lexis {
+    /// Optional ID for the lex. Useful when exporting out of the language tree structure
+    pub id: String,
     pub word: Option<Word>,
     pub language: String,
     pub pos: Option<PartOfSpeech>,
@@ -21,18 +23,6 @@ pub struct Lexis {
     pub tags: Vec<String>
 }
 
-impl Default for Lexis{
-    fn default() -> Self {
-        Lexis {
-            word: None, 
-            language: String::new(), 
-            pos: None, 
-            lexis_type: String::new(),
-             definition: String::new(), 
-             archaic: false, 
-             tags: Vec::new() }
-    }
-}
 
 impl std::fmt::Debug for Lexis {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -56,35 +46,17 @@ impl std::fmt::Debug for Lexis {
 
 
 
-#[derive(Clone)]
-pub struct Transform {
-    pub name: String,
-    pub transforms: Vec<TransformFunc>,
-    pub agglutination_order: Option<i32>,
-}
 
-impl std::fmt::Debug for Transform {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_fmt(format_args!("{}", self.name))
-    }
-}
-
-impl Transform{
-    pub fn transform(&self, etymon: &Lexis) -> Lexis {
-        let mut updated = etymon.clone();
-        for transform in &self.transforms {
-            updated = transform.transform(updated);
-        };
-
-        updated
-    }
-}
 
 pub struct LanguageTree {
     //the Node type represents a lexical entry, the edge is a tuple of the transform, and a "holding" string that's used to "trickle down" words as they're generated
     graph: Graph<Lexis, (Transform, Option<Word>)>,
+}
 
-    
+impl Default for LanguageTree{
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 /// LanguageTree stores the working state of a language graph.
@@ -105,7 +77,7 @@ impl LanguageTree {
     }
 
     /// creates an etymological link between two words: an upstream etymon, and a base word. If neither word exists, they will be added.
-    pub fn connect_etynmology(&mut self, lex: Lexis, etymon: Lexis, trans: Transform){
+    pub fn connect_etymology(&mut self, lex: Lexis, etymon: Lexis, trans: Transform){
         let mut lex_idx: Option<NodeIndex> = None;
         let mut ety_idx: Option<NodeIndex> = None;
 
@@ -117,11 +89,11 @@ impl LanguageTree {
 
         if ety_idx.is_none() && lex_idx.is_none(){
            for nx in self.graph.node_indices(){ 
-                if &self.graph[nx] == &lex && lex_idx.is_none(){
+                if self.graph[nx] == lex && lex_idx.is_none(){
                     lex_idx = Some(nx);
                     continue;
                 }
-                if &self.graph[nx] == &etymon && ety_idx.is_none(){
+                if self.graph[nx] == etymon && ety_idx.is_none(){
                     ety_idx = Some(nx);
                     continue;
                 }
@@ -132,7 +104,7 @@ impl LanguageTree {
         }
 
         if lex_idx.is_none(){
-            lex_idx = Some(self.graph.add_node(lex.clone()));
+            lex_idx = Some(self.graph.add_node(lex));
         }
         if ety_idx.is_none(){
             ety_idx = Some(self.graph.add_node(etymon));
@@ -174,7 +146,6 @@ impl LanguageTree {
                     }
                 } else {
                     // we have a node with no word, see if we can fill it
-                    // globals should go here?
                     let mut is_ready = true;
                     let mut upstreams: Vec<(i32, Word)> = Vec::new();
                     
@@ -215,28 +186,70 @@ pub struct RenderedTree {
 }
 
 impl RenderedTree{
-        /// reduce the language graph to a vector of words that match the provided function.
-        pub fn reduce_to_dict<F>(self, filter: F) -> Vec<Lexis>
-        where
-        F: Fn(&Lexis) -> bool,
-        {
-            let mut dict: Vec<Lexis> = Vec::new();
-            for node in self.graph.node_indices(){
-                if self.graph[node].word.is_some() && filter(&self.graph[node]) {
-                    dict.push(self.graph[node].clone());
-                }
+    /// reduce the language graph to a vector of words that match the provided function.
+    pub fn to_vec<F>(self, filter: F) -> Vec<Lexis>
+    where
+    F: Fn(&Lexis) -> bool,
+    {
+        let mut dict: Vec<Lexis> = Vec::new();
+        for node in self.graph.node_indices(){
+            if self.graph[node].word.is_some() && filter(&self.graph[node]) {
+                dict.push(self.graph[node].clone());
             }
-            dict.sort_by_key(|k| k.word.clone().unwrap());
-            dict
         }
-        pub fn graphviz(&self) -> String{
-            format!("{:?}", Dot::with_config(&self.graph, &[Config::EdgeNoLabel]))  
-         }
+        dict.sort_by_key(|k| k.word.clone().unwrap());
+        dict
+
+    }
+
+    /// reduce the language graph to a vector of words that match the provided function. Returns a vector of tuples for each matching word and any associated etymological data.
+    pub fn to_vec_etymons<F>(self, filter: F) -> Vec<(Lexis, Etymology)> 
+    where 
+    F: Fn(&Lexis) -> bool,
+    {
+        let mut word_vec: Vec<(Lexis, Etymology)> = Vec::new();
+        for node in self.graph.node_indices(){
+           if self.graph[node].word.is_some(){
+                if filter(&self.graph[node]){
+                    let mut etymon_list: Vec<Edge> = Vec::new();
+                    for etymon in self.graph.neighbors_directed(node, Incoming){
+                        let ety_link: Vec<EdgeReference<(Transform, Option<Word>)>> = self.graph.edges_connecting(etymon, node).collect();
+                        let mut transform_name = String::new();
+                        let mut agg_order: Option<i32> = None;
+                        if let Some(trans_link) = ety_link.get(0){
+                            let trans_data =  trans_link.weight();
+                            transform_name =  trans_data.0.name.clone();
+                            agg_order = trans_data.0.agglutination_order;
+                        }
+                        etymon_list.push(Edge{etymon: self.graph[etymon].id.clone(), transform: transform_name, agglutination_order: agg_order});
+                    }
+                    word_vec.push((self.graph[node].clone(), Etymology{etymons: etymon_list}));
+                }
+           }
+        }
+
+        word_vec
+    }
+
+    pub fn graphviz(&self) -> String{
+        format!("{:?}", Dot::with_config(&self.graph, &[Config::EdgeNoLabel]))  
+    }
+    /// Walk through each word in the tree, applying the walk_function closure. The closure takes the a Lexis value, and returns a tuple of two optional Lexis and Transform values.
+    /// If the closure returns `Some()` for the Lexis value, the enclosed Lexis will be added as a derivative word to the tree.
+    pub fn walk_create_derivatives(&mut self, mut walk_function: impl FnMut(Lexis)->(Option<Lexis>, Option<Transform>)){
+        for node in self.graph.node_indices(){
+            let (new, trans) = walk_function(self.graph[node].clone());
+            if let Some(der_word) = new{
+                let new_node = self.graph.add_node(der_word);
+                self.graph.add_edge(node, new_node, (trans.unwrap_or_default(), self.graph[node].word.clone()));
+            }
+        }
+    }
 }
 
-fn join_string_vectors(words: &mut Vec<(i32, Word)>) -> Word{
+fn join_string_vectors(words: &mut [(i32, Word)]) -> Word{
     words.sort_by_key(|k| k.0);
-    let merged: Vec<String> = words.iter().map(|s| s.1.clone().chars()).flatten().collect();
+    let merged: Vec<String> = words.iter().flat_map(|s| s.1.clone().chars()).collect();
     merged.into()
 }
 

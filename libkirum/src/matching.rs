@@ -1,5 +1,4 @@
 use serde::{Deserialize, Serialize};
-use crate::transforms::TransformFunc;
 use crate::kirum::Lexis;
 use crate::word::{Word, PartOfSpeech};
 
@@ -10,6 +9,12 @@ pub enum Value{
     Not(ValueMatch),
     #[serde(rename="match")]
     Match(ValueMatch)
+}
+
+impl From<String> for Value{
+    fn from(value: String) -> Self {
+        Value::Match(ValueMatch::Equals(EqualValue::String(value)))
+    }
 }
 
 impl Value{
@@ -58,26 +63,17 @@ impl PartialEq<String> for ValueMatch{
         }
     }
 
-    fn ne(&self, other: &String) -> bool {
-        ! self.eq(other)
-    }
 }
 
 impl PartialEq<Word> for ValueMatch{
     fn eq(&self, other: &Word) -> bool {
         *self == other.to_string()
     }
-    fn ne(&self, other: &Word) -> bool {
-        ! self.eq(other)
-    }
 }
 
 impl PartialEq<PartOfSpeech> for ValueMatch{
     fn eq(&self, other: &PartOfSpeech) -> bool {
         *self == other.to_string()
-    }
-    fn ne(&self, other: &PartOfSpeech) -> bool {
-        ! self.eq(other)
     }
 }
 
@@ -98,7 +94,7 @@ impl PartialEq<Vec<std::string::String>> for ValueMatch{
     }
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+#[derive(Serialize, Default, Deserialize, Debug, Clone, PartialEq)]
 pub struct LexisMatch{
     pub id: Option<Value>,
     pub word: Option<Value>,
@@ -110,16 +106,18 @@ pub struct LexisMatch{
     pub tags: Option<Value>
 }
 
+impl LexisMatch {
+    pub fn matches(&self, lex: &Lexis) -> bool{
+            self == lex
+    }
+}
+
 fn value_matches<T>(val: &Option<Value>, to_match: &T) -> bool
     where
     ValueMatch: PartialEq<T>
     {
     if let Some(v) = val {
-        if v.is_true(to_match){
-            true
-        } else{
-            false
-        }
+        v.is_true(to_match)
     } else{
         true
     }
@@ -127,20 +125,16 @@ fn value_matches<T>(val: &Option<Value>, to_match: &T) -> bool
 
 impl PartialEq<Lexis> for LexisMatch{
     fn eq(&self, other: &Lexis) -> bool {
-        if let Some(word) = &other.word {value_matches(&self.word, word);} else{true;} &
+        value_matches(&self.tags, &other.tags) &
+        if let Some(word) = &other.word{value_matches(&self.word, word)} else{true} &
         value_matches(&self.language, &other.language) &
         if let Some(pos) = other.pos{value_matches(&self.pos, &pos)} else{true} &
         value_matches(&self.lexis_type, &other.lexis_type) &
-        if let Some(a) = self.archaic{a == other.archaic} else{true} & 
-        value_matches(&self.tags, &other.tags)
+        if let Some(a) = self.archaic{a == other.archaic} else{true}
+        
     }
 }
 
-impl Default for LexisMatch {
-    fn default() -> Self {
-        LexisMatch { id: None, word: None, language: None, pos: None, lexis_type: None, archaic: None, tags: None }
-    }
-}
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub enum EtymonMatch{
@@ -163,24 +157,16 @@ impl PartialEq<Vec<Lexis>> for EtymonMatch {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct Match{
-    pub lexis: LexisMatch,
-    pub etymon: EtymonMatch
-}
+// #[derive(Serialize, Deserialize, Debug, Clone)]
+// pub struct Match{
+//     pub lexis: LexisMatch,
+// }
 
-impl Match {
-    pub fn matches(self, lex: Lexis, etymons: Vec<Lexis>) -> bool{
-            self.lexis == lex && self.etymon == etymons
-    }
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct GlobalMatch{
-    pub matches: Match,
-    pub transform: Vec<TransformFunc>,
-    pub when: WhenMatch
-}
+// impl Match {
+//     pub fn matches(&self, lex: &Lexis) -> bool{
+//             self.lexis == *lex
+//     }
+// }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum WhenMatch{
@@ -203,47 +189,15 @@ pub enum WhenMatch{
 #[cfg(test)]
 mod tests {
 
-    use serde_json::from_str;
-
     use crate::errors::LangError;
     use crate::kirum::Lexis;
-    use crate::matching::{Value, ValueMatch, EtymonMatch, LexisMatch, EqualValue};
+    use crate::matching::{Value, ValueMatch, LexisMatch, EqualValue};
 
-    use super::GlobalMatch;
-   // use crate::matching::global_matches_from_file;
-
-    pub fn global_matches_from_file(filepath: String) -> Result<Vec<GlobalMatch>, LangError>{
-        let match_raw = std::fs::read_to_string(filepath).map_err(LangError::JSONImportError)?;
-        let matches: Vec<GlobalMatch> = from_str(&match_raw).map_err(LangError::JSONSerdeError)?;
-    
-        Ok(matches)
-    }
-
-    #[test]
-    fn test_file_ingest()->Result<(), LangError>{
-
-        let matches = global_matches_from_file("src/example_files/example_global.json".to_string())?;
-        let main_match = matches[0].clone();
-
-        let match_lexis = main_match.matches.lexis;
-        assert_eq!(match_lexis.lexis_type, Some(Value::Match(ValueMatch::Equals(EqualValue::String("stem".to_string())))));
-        assert_eq!(match_lexis.tags, Some(Value::Match(ValueMatch::OneOf(vec!["genitive".to_string()]))));
-        assert_eq!(match_lexis.pos, Some(Value::Not(ValueMatch::Equals(EqualValue::String("noun".to_string())))));
-
-        let match_etymon = main_match.matches.etymon;
-        assert_eq!(match_etymon, EtymonMatch::All(LexisMatch{id: None, word: None, language: None, pos: None, lexis_type: Some(Value::Match(ValueMatch::Equals(EqualValue::String("root".to_string())))), archaic: None, tags: None}));
-
-
-        for word_match in matches{
-            println!("Got match: {:?}", word_match);
-        };
-
-        Ok(())
-    }
 
     #[test]
     fn test_lexis_match()-> Result<(), LangError>{
         let test_lexis = Lexis{
+        id: String::new(),
         word: Some("kirum".into()), 
         lexis_type: "".to_string(),
         language: "Old Babylonian".to_string(),
@@ -251,7 +205,7 @@ mod tests {
         definition: "".to_string(),
         archaic: false,
         tags: vec!["tag1".to_string(), "tag2".to_string()]
-        };
+        }; 
 
         let test_match = LexisMatch{
             id: None,

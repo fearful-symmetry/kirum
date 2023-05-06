@@ -28,7 +28,7 @@ impl std::string::ToString for PartOfSpeech{
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Etymology{
     pub etymons: Vec<Edge>,
-    agglutination: Option<Agglutination>
+    //agglutination: Option<Agglutination>
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -65,7 +65,7 @@ impl Word{
         match self{
             Word::Letters(letters) => letters,
             Word::String(s) =>{
-                s.chars().map(|c| String::from(c)).collect()
+                s.chars().map(String::from).collect()
             }
         }
     }
@@ -97,22 +97,48 @@ impl Word{
     }
 
 
-    pub fn replace(self, old: String, new: String, _kind: &transforms::LetterReplaceType) -> Word{
+    pub fn replace(self, old: String, new: String, kind: &transforms::LetterReplaceType) -> Word{
         let capture = format!("({})", old);
         let re = Regex::new(&capture).unwrap();
         match self{
             Word::Letters(letters) =>{
                 let mut updated: Vec<String> = Vec::new();
+                let mut replaced = false;
                 for letter in letters{
-                    let new_letter = re.replace_all(&letter, new.clone());
-                    updated.push(new_letter.to_string());
+                    match kind{
+                        transforms::LetterReplaceType::All =>{
+                            if old == letter{
+                                updated.push(new.clone());
+                            }else{
+                                updated.push(letter);
+                            }
+                        },
+                        transforms::LetterReplaceType::First =>{
+                            if old == letter && !replaced{
+                                updated.push(new.clone());
+                                replaced = true;
+                            }else{
+                                updated.push(letter);
+                            }
+                        }
+                    }
+
                 }
                 
                 Word::Letters(updated)
             },
             Word::String(s) =>{
-                let updated = re.replace_all(&s, new);
-                Word::String(updated.to_string())
+                match kind{
+                    transforms::LetterReplaceType::All =>{
+                        let updated = re.replace_all(&s, new);
+                        Word::String(updated.to_string())
+                    }
+                    transforms::LetterReplaceType::First =>{
+                        let updated = re.replace(&s, new);
+                        Word::String(updated.to_string())
+                    }
+                }
+
             }
         }
     }
@@ -143,7 +169,7 @@ impl Word{
         let working_array = match self{
             Word::Letters(letters) => letters,
             Word::String(s) => {
-                s.chars().map(|c| String::from(c)).collect()
+                s.chars().map(String::from).collect()
             }
         };
         let mut new_letters: Vec<String> = Vec::new();
@@ -205,7 +231,7 @@ mod tests {
     use crate::{word::Word, transforms::LetterReplaceType};
 
     #[test]
-    fn test_replace() {
+    fn test_replace_all() {
         let vec_word: Word = vec!["k".to_string(), "i".to_string(), "r".to_string(), "u".to_string(), "m".to_string()].into();
         let updated_vec = vec_word.replace("i".to_string(), "e".to_string(), &LetterReplaceType::All);
 
@@ -215,5 +241,13 @@ mod tests {
         let updated_str = str_word.replace("i".into(), "e".into(), &LetterReplaceType::All);
 
         assert_eq!(updated_str.to_string(), "kerum".to_string());
+    }
+
+    #[test]
+    fn test_replace_first(){
+        let vec_word: Word = vec!["k".to_string(), "i".to_string(), "r".to_string(), "u".to_string(), "u".to_string()].into();
+        let updated_vec = vec_word.replace("u".to_string(), "h".to_string(), &LetterReplaceType::First);
+
+        assert_eq!(updated_vec.to_string(), "kirhu".to_string());
     }
 }

@@ -1,5 +1,5 @@
 {
-    "dipthong_shift":{
+    "dipthong_drop":{
         "transforms":[
             {
                 "letter_replace": {
@@ -15,25 +15,21 @@
             }
         ]
     },
-    "from-consonant-root:reflexive":{
+    "test_transform":{
         "transforms":[
             {
-                "letter_array": {
-                    "letters":[0, "ü", 1, "u", 2]
+                "letter_replace":{
+                    "letter": {"old": "r", "new":"b"},
+                    "replace": "all"
                 }
             }
-        ]
-    },
-    "noun:nominative": {
-        "transforms":[
-            {
-                "postfix": {"value": "uh"}
+        ],
+        "conditional":{
+            "type": {
+                "match":{
+                    "equals": "stem"
+                }
             }
-        ]
-    },
-    "loanword":{ 
-        "transforms": [
-            "loanword"
-        ]
+        }
     }
 }
