@@ -1,8 +1,7 @@
 use serde::{Deserialize, Serialize};
 use regex::Regex;
-
 use crate::{transforms, transforms::LetterRemovePosition, transforms::LetterArrayValues};
-
+use serde_with::skip_serializing_none;
 
 
 #[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq)]
@@ -28,7 +27,6 @@ impl std::string::ToString for PartOfSpeech{
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Etymology{
     pub etymons: Vec<Edge>,
-    //agglutination: Option<Agglutination>
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -36,14 +34,13 @@ pub struct Agglutination {
     order: Vec<String>
 }
 
+#[skip_serializing_none]
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Edge {
     pub etymon: String,
-    pub transform: String,
+    pub transform: Vec<String>,
     pub agglutination_order: Option<i32>
 }
-
-
 
 #[derive(Deserialize, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 #[serde(untagged)]

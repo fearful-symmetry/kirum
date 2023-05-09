@@ -1,0 +1,41 @@
+{
+    "transforms": { 
+        "dipthong_shift":{
+            "transforms":[
+                {
+                    "letter_replace": {
+                        "letter":{"old":"ü", "new": "ū"},
+                        "replace": "all"
+                    }
+                },
+                {
+                    "letter_replace": {
+                        "letter":{"old":"ä", "new": "ā"},
+                        "replace": "all"
+                    }
+                }
+            ]
+        },
+        "from-consonant-root:reflexive":{
+            "transforms":[
+                {
+                    "letter_array": {
+                        "letters":[0, "ü", 1, "u", 2]
+                    }
+                }
+            ]
+        },
+        "noun:nominative": {
+            "transforms":[
+                {
+                    "postfix": {"value": "uh"}
+                }
+            ]
+        },
+        "loanword":{ 
+            "transforms": [
+                "loanword"
+            ]
+        }
+    }
+}

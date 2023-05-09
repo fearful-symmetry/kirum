@@ -7,7 +7,7 @@ pub struct Transform {
     pub name: String,
     pub lex_match: Option<LexisMatch>,
     pub transforms: Vec<TransformFunc>,
-    pub agglutination_order: Option<i32>,
+   //pub agglutination_order: Option<i32>,
 }
 
 impl std::fmt::Debug for Transform {
@@ -22,6 +22,7 @@ impl Transform{
         self.transform_option(etymon).unwrap_or(etymon.clone())
     }
 
+    // Transform the given lexis, or return None if the lex_match condition evaluates to false
     pub fn transform_option(&self, etymon: &Lexis) ->Option<Lexis>{
         let can_transform = if let Some(lex_match) = &self.lex_match{
             lex_match.matches(&etymon)

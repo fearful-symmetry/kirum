@@ -1,0 +1,37 @@
+{
+    "transforms":{
+        "dipthong_drop":{
+            "transforms":[
+                {
+                    "letter_replace": {
+                        "letter":{"old":"ü", "new": "ū"},
+                        "replace": "all"
+                    }
+                },
+                {
+                    "letter_replace": {
+                        "letter":{"old":"ä", "new": "ā"},
+                        "replace": "all"
+                    }
+                }
+            ]
+        },
+        "consonant-t-b":{
+            "transforms":[
+                {
+                    "letter_replace":{
+                        "letter": {"old": "r", "new":"b"},
+                        "replace": "all"
+                    }
+                }
+            ],
+            "conditional":{
+                "type": {
+                    "match":{
+                        "equals": "stem"
+                    }
+                }
+            }
+        }
+    }
+}

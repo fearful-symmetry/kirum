@@ -1,24 +1,35 @@
 mod entries;
 mod cli;
+mod files;
 use clap::Parser;
-use anyhow::{Result, Context};
-use entries::{RawLexicalEntry, RawTransform};
-use libkirum::{kirum::{LanguageTree, Lexis, RenderedTree}, transforms::{Transform, TransformFunc}};
-use std::{collections::HashMap, fs::File, io::Write};
-use serde::{Deserialize, Serialize};
+use anyhow::{Result, Context, anyhow};
+use libkirum::{kirum::{Lexis, RenderedTree, TreeEtymology}, transforms::{Transform}};
+use std::{fs::File, io::Write, path::{PathBuf}};
 use csv::WriterBuilder;
 use handlebars::Handlebars;
+use env_logger::{Builder};
+use log::LevelFilter;
+
+#[macro_use]
+extern crate log;
 
 fn main() -> Result<()> {
     let cli = cli::Args::parse();
 
+    let log_level: log::LevelFilter = if cli.verbose {
+        LevelFilter::Debug
+    } else {
+        LevelFilter::Info
+    };
+    Builder::new().filter_level(log_level).init();
+
     let out_data: String = match cli.command{
-        cli::Commands::Graphviz{transforms, graph} =>{
-            let computed = read_and_compute(transforms, graph)?;
+        cli::Commands::Graphviz{transforms, graph, directory} =>{
+            let computed = read_and_compute(transforms, graph, directory)?;
             computed.graphviz()
         },
-        cli::Commands::Render{command, transforms, graph} =>{
-            let computed = read_and_compute(transforms, graph)?;
+        cli::Commands::Render{command, transforms, graph, directory} =>{
+            let computed = read_and_compute(transforms, graph, directory)?;
             let rendered_dict = computed.to_vec(|_w|true);
             match command{
                 cli::Format::Line =>{
@@ -47,47 +58,49 @@ fn main() -> Result<()> {
         },
         cli::Commands::Generate{command} =>{
             match command{
-                cli::Generate::Daughter { graph, transforms, daughter_transforms, ancestor, name:lang_name } =>{
-                    let mut computed = read_and_compute(transforms, graph).context("error reading existing graph and transforms")?;
-                    let trans_raw = std::fs::read_to_string(daughter_transforms.clone()).context(format!("error reading daughter transformation file {}", daughter_transforms))?;
-                    let daughter_transform_map: HashMap<String, RawTransform> = serde_json::from_str(&trans_raw).context("error parsing daughter transformations")?;
+                cli::Generate::Daughter { graph, transforms, daughter_etymology, ancestor, name:lang_name, directory,  output } =>{
+                    let mut computed = read_and_compute(transforms, graph, directory).context("error reading existing graph and transforms")?;
+                    let trans_raw = std::fs::read_to_string(daughter_etymology.clone()).context(format!("error reading daughter transformation file {}", daughter_etymology))?;
+                    let daughter_transform_map: files::TransformGraph = serde_json::from_str(&trans_raw).context("error parsing daughter transformations")?;
 
                     computed.walk_create_derivatives(|lex: Lexis| 
                         if lex.language == ancestor{
                             let mut found_updated: Lexis = lex;
-                            let mut  transform_acc: Vec<TransformFunc> = Vec::new();
-                            for (name, trans) in &daughter_transform_map.clone(){
+                            let mut  transform_acc: Vec<Transform> = Vec::new();
+                            for (name, trans) in &daughter_transform_map.transforms.clone(){
                                 let new_trans = Transform{name: lang_name.clone(), ..trans.clone().into()};
                                 let updated = new_trans.transform_option(&found_updated);
                                 if let Some(upd) = updated{
-                                    transform_acc = [transform_acc, trans.transforms.clone()].concat();
+                                    let conv: Transform = trans.clone().into();
+                                    transform_acc.push(Transform { name: name.to_string(), ..conv });
                                     found_updated = Lexis{language: lang_name.to_owned(), ..upd};
-                                    println!("applied {}", name);
+                                    debug!("applied {}", name);
                                     //break;
                                 }else{
                                     continue
                                 }
                             }
-                            return (Some(found_updated), Some(Transform { name: format!("Ancestor {}", lang_name), lex_match: None, transforms: transform_acc, agglutination_order: None }));
+                            return (Some(found_updated), Some(TreeEtymology{transforms: transform_acc, ..Default::default()}))
                         } else{
                             return (None, None);
                         }
                     );
 
-                    
-                    
-                    // this generates correct data
-                    println!("{}", computed.graphviz());
+                    // debug statements
+                    // println!("{}", computed.graphviz());
                     let rendered_dict = computed.to_vec_etymons(|word|word.language == lang_name);
+
                     let mut acc = String::new();
                     for (word, ety) in rendered_dict.clone() {
                         acc = format!("{}\n{:?} | etymons: {:?}", acc, word, ety)
                     }
+                    // TODO: write to file
                     // generate JSON that we can save to a file, re-ingest later
-                    // next steps: write out transforms to JSON, let code read in multiple graph files
                     let graph = entries::create_json_graph(rendered_dict);
                     let graph_data = serde_json::to_string_pretty(&graph)?;
-                    println!("{}", graph_data);
+                    let mut file = File::create(output.clone())?;
+                    write!(file, "{}", graph_data)?;
+                    info!("wrote daughter {} to {}", lang_name, output);
 
                     acc
                 }
@@ -100,50 +113,28 @@ fn main() -> Result<()> {
         let mut out_file = File::create(out_path)?;
         write!(out_file, "{}", out_data)?;
     }else {
-        println!("{}", out_data);    
+        info!("{}", out_data);    
     }
     
 
     Ok(())
 }
 
-#[derive(Serialize, Deserialize, Debug)]
-pub struct WordGraph {
-    pub words: HashMap<String, RawLexicalEntry>,
-}
 
 
-fn read_and_compute(transforms: String, graph:String) -> Result<RenderedTree>{
-    let mut lang_tree = read_from_files(transforms, graph)?;
-    println!("rendering...");
+// read in the existing files and generate a graph
+// deals with the logic of listed files versus a specified directory
+fn read_and_compute(transforms: Option<String>, graph: Option<String>, directory: Option<String>) -> Result<RenderedTree>{
+    let (transform_files, graph_files): (Vec<PathBuf>, Vec<PathBuf>) = if transforms.is_some() && graph.is_some(){
+        (vec![transforms.unwrap().into()], vec![graph.unwrap().into()])
+    } else if directory.is_some(){
+        files::handle_directory(directory.unwrap())?
+    } else {
+        return Err(anyhow!("must specify either a graph and transform file, or a directory"));
+    }; 
+    let mut lang_tree = files::read_from_files(transform_files, graph_files)?;
+    debug!("rendering...");
     let computed = lang_tree.compute_lexicon();
     Ok(computed)
 }
 
-fn read_from_files(transforms:String, graph:String) -> Result<LanguageTree>{
-    // transforms 
-    let trans_raw = std::fs::read_to_string(transforms.clone()).context(format!("error reading transformation file {}", transforms))?;
-    let transforms: HashMap<String, RawTransform> = serde_json::from_str(&trans_raw)?;
-
-    // map 
-    let graph_raw = std::fs::read_to_string(graph.clone()).context(format!("error reading graph file {}", graph))?;
-    let raw_graph: WordGraph = serde_json::from_str(&graph_raw)?;
-    
-
-    let mut tree = LanguageTree::new();
-
-    for (lex_name, node) in raw_graph.words.clone(){
-        let node_lex: Lexis = Lexis { id: lex_name, ..node.clone().into() };
-
-        if let Some(etymon) = node.etymology.clone(){
-            for e in etymon.etymons{
-                let trans = transforms.get(&e.transform).context(format!("transform {} does not exist", &e.transform))?;
-                let ety_lex: RawLexicalEntry = raw_graph.words.get(&e.etymon).context(format!("etymon {} does not exist ", &e.etymon))?.clone();
-                tree.connect_etymology(node_lex.clone(), Lexis { id: e.etymon, ..ety_lex.into()}, Transform{name: e.transform, transforms: trans.transforms.to_vec(), agglutination_order: e.agglutination_order, lex_match: trans.conditional.clone()});
-            }
-        }
-       
-    }
-
-    Ok(tree)
-}

@@ -5,6 +5,7 @@ use petgraph::dot::{Dot, Config};
 use petgraph::graph::EdgeReference;
 use petgraph::stable_graph::NodeIndex;
 use petgraph::{Graph, visit::EdgeRef};
+//use serde_with::skip_serializing_none;
 
 
 
@@ -15,6 +16,7 @@ pub struct Lexis {
     pub id: String,
     pub word: Option<Word>,
     pub language: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub pos: Option<PartOfSpeech>,
     pub lexis_type: String,
     pub definition: String,
@@ -45,12 +47,35 @@ impl std::fmt::Debug for Lexis {
 }
 
 
+#[derive(Default, Debug, Clone)]
+pub struct TreeEtymology {
+    pub transforms: Vec<Transform>,
+    pub intermediate_word: Option<Word>,
+    pub agglutination_order: Option<i32>
+}
 
+impl TreeEtymology{
+    // a helper function to apply the given lexis to all transforms in the graph edge
+    pub fn apply_transforms(&self, etymon: &Lexis) -> Lexis {
+
+        let mut transformed = etymon.clone();
+        for trans in self.transforms.clone(){
+            transformed = trans.transform(&transformed);
+        }
+
+        transformed
+    }
+
+    // A helper function that returns a vector of all names transforms in the graph edges
+    pub fn names(&self) -> Vec<String>{
+       self.transforms.clone().into_iter().map(|t| t.name).collect()
+    }
+}
 
 
 pub struct LanguageTree {
     //the Node type represents a lexical entry, the edge is a tuple of the transform, and a "holding" string that's used to "trickle down" words as they're generated
-    graph: Graph<Lexis, (Transform, Option<Word>)>,
+    graph: Graph<Lexis, TreeEtymology>,
 }
 
 impl Default for LanguageTree{
@@ -62,7 +87,7 @@ impl Default for LanguageTree{
 /// LanguageTree stores the working state of a language graph.
 impl LanguageTree {
     pub fn new() -> Self {
-        LanguageTree {graph: Graph::<Lexis, (Transform, Option<Word>), petgraph::Directed>::new()}
+        LanguageTree {graph: Graph::<Lexis, TreeEtymology, petgraph::Directed>::new()}
 
     }
 
@@ -77,7 +102,7 @@ impl LanguageTree {
     }
 
     /// creates an etymological link between two words: an upstream etymon, and a base word. If neither word exists, they will be added.
-    pub fn connect_etymology(&mut self, lex: Lexis, etymon: Lexis, trans: Transform){
+    pub fn connect_etymology(&mut self, lex: Lexis, etymon: Lexis, trans: Vec<Transform>, agglutination_order: Option<i32>){
         let mut lex_idx: Option<NodeIndex> = None;
         let mut ety_idx: Option<NodeIndex> = None;
 
@@ -110,7 +135,7 @@ impl LanguageTree {
             ety_idx = Some(self.graph.add_node(etymon));
         }
 
-        self.graph.add_edge(ety_idx.unwrap(), lex_idx.unwrap(), (trans, None));
+        self.graph.add_edge(ety_idx.unwrap(), lex_idx.unwrap(), TreeEtymology { transforms: trans, intermediate_word: None, agglutination_order: agglutination_order });
 
     }
 
@@ -130,14 +155,14 @@ impl LanguageTree {
                 if rendered[node].word.is_some(){
                     // iterate over downstream edges
                     for edge in rendered.clone().edges_directed(node, petgraph::Direction::Outgoing){
-                        if edge.weight().1.is_some(){
+                        if edge.weight().intermediate_word.is_some(){
                             continue
                         }
                         //we have an unfilled edge, generate stem
                         let mut existing = edge.weight().clone();
-                        let transformed = existing.0.transform(&rendered[node]);
+                        let transformed = existing.apply_transforms(&rendered[node]);
                         //println!("updated edge with word {:?}", transformed.word);
-                        existing.1 = transformed.word;
+                        existing.intermediate_word = transformed.word;
                         changes+=1;
     
                         let node_target = edge.target();
@@ -150,13 +175,13 @@ impl LanguageTree {
                     let mut upstreams: Vec<(i32, Word)> = Vec::new();
                     
                     for edge in rendered.clone().edges_directed(node, petgraph::Direction::Incoming){
-                        if edge.weight().1.is_none(){
+                        if edge.weight().intermediate_word.is_none(){
                             // word still has unpopulated edges, give up
                             is_ready = false;
                             break;
                         }
-                        let order = edge.weight().0.agglutination_order.unwrap_or(0);
-                        upstreams.push((order, edge.weight().1.clone().unwrap()));
+                        let order = edge.weight().agglutination_order.unwrap_or(0);
+                        upstreams.push((order, edge.weight().intermediate_word.clone().unwrap()));
                         
                     }
                     if is_ready{
@@ -182,7 +207,7 @@ impl LanguageTree {
 
 /// RenderedTree is the final generated language family tree, as generated by a LanguageTree object.
 pub struct RenderedTree {
-    graph: Graph<Lexis, (Transform, Option<Word>)>,
+    graph: Graph<Lexis, TreeEtymology>,
 }
 
 impl RenderedTree{
@@ -213,13 +238,13 @@ impl RenderedTree{
                 if filter(&self.graph[node]){
                     let mut etymon_list: Vec<Edge> = Vec::new();
                     for etymon in self.graph.neighbors_directed(node, Incoming){
-                        let ety_link: Vec<EdgeReference<(Transform, Option<Word>)>> = self.graph.edges_connecting(etymon, node).collect();
-                        let mut transform_name = String::new();
+                        let ety_link: Vec<EdgeReference<TreeEtymology>> = self.graph.edges_connecting(etymon, node).collect();
+                        let mut transform_name: Vec<String> = Vec::new();
                         let mut agg_order: Option<i32> = None;
                         if let Some(trans_link) = ety_link.get(0){
                             let trans_data =  trans_link.weight();
-                            transform_name =  trans_data.0.name.clone();
-                            agg_order = trans_data.0.agglutination_order;
+                            transform_name =  trans_data.names();
+                            agg_order = trans_data.agglutination_order;
                         }
                         etymon_list.push(Edge{etymon: self.graph[etymon].id.clone(), transform: transform_name, agglutination_order: agg_order});
                     }
@@ -236,12 +261,12 @@ impl RenderedTree{
     }
     /// Walk through each word in the tree, applying the walk_function closure. The closure takes the a Lexis value, and returns a tuple of two optional Lexis and Transform values.
     /// If the closure returns `Some()` for the Lexis value, the enclosed Lexis will be added as a derivative word to the tree.
-    pub fn walk_create_derivatives(&mut self, mut walk_function: impl FnMut(Lexis)->(Option<Lexis>, Option<Transform>)){
+    pub fn walk_create_derivatives(&mut self, mut walk_function: impl FnMut(Lexis)->(Option<Lexis>, Option<TreeEtymology>)){
         for node in self.graph.node_indices(){
             let (new, trans) = walk_function(self.graph[node].clone());
             if let Some(der_word) = new{
                 let new_node = self.graph.add_node(der_word);
-                self.graph.add_edge(node, new_node, (trans.unwrap_or_default(), self.graph[node].word.clone()));
+                self.graph.add_edge(node, new_node, trans.unwrap_or_default());
             }
         }
     }

@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use libkirum::{word::{Word, PartOfSpeech, Etymology}, kirum::Lexis, transforms::{TransformFunc, Transform}, matching::LexisMatch};
 use serde::{Serialize, Deserialize};
+use serde_with::skip_serializing_none;
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct RawTransform{
@@ -11,11 +12,11 @@ pub struct RawTransform{
 
 impl From<RawTransform> for Transform{
     fn from(value: RawTransform) -> Self {
-        Transform { name: String::new(), lex_match: value.conditional, transforms: value.transforms, agglutination_order: None }
+        Transform { name: String::new(), lex_match: value.conditional, transforms: value.transforms}
     }
 }
 
-
+#[skip_serializing_none]
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct RawLexicalEntry {
     pub word: Option<Word>,

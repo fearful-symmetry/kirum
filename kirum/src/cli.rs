@@ -5,7 +5,9 @@ use clap::Parser;
 #[clap(about = "A CLI conlang utility for generating a language or language family based on etymological rules")]
 #[clap(propagate_version = true)]
 pub struct Args {
-
+    // verbose output
+    #[arg(short, long)]
+    pub verbose: bool,
     /// Output file; defaults to stdout if unspecified
     #[clap(short, long, value_parser)]
     pub output: Option<String>,
@@ -18,28 +20,36 @@ pub struct Args {
 pub enum Commands{
     /// Print a graphviz representation of the language
     Graphviz{
-        /// json file of defined etymon transforms
-        #[clap(short, long, value_parser, default_value_t = String::from("transforms.json"))]
-        transforms: String,
+        /// JSON file of defined etymon transforms
+        #[clap(short, long, value_parser)]
+        transforms: Option<String>,
         /// json file of a language graph
-        #[clap(short, long, value_parser, default_value_t = String::from("graph.json"))]
-        graph: String,
+        #[clap(short, long, value_parser)]
+        graph: Option<String>,
+
+        /// path to a directory to read in all transform and graph files
+        #[clap(short, long, value_parser)]
+        directory: Option<String>,
     },
 
     /// Render a lexicon from an existing set of graph files and transformations
     Render{
-        /// json file of defined etymon transforms
-        #[clap(short, long, value_parser, default_value_t = String::from("transforms.json"))]
-        transforms: String,
-        /// json file of a language graph
-        #[clap(short, long, value_parser, default_value_t = String::from("graph.json"))]
-        graph: String,
+        /// JSON file of defined etymon transforms
+        #[clap(short, long, value_parser)]
+        transforms: Option<String>,
+        /// JSON file of a language graph
+        #[clap(short, long, value_parser)]
+        graph: Option<String>,
+
+        /// path to a directory to read in all transform and graph files
+        #[clap(short, long, value_parser)]
+        directory: Option<String>,
 
         #[clap(subcommand)]
         command: Format
     },
 
-    /// Generate a graph from another source
+    /// Generate a language tree from another source
     Generate {
         #[clap(subcommand)]
         command: Generate
@@ -52,19 +62,25 @@ pub enum Generate{
     Daughter{
         /// The file path to the existing language graph.
         #[clap(short, long, value_parser)]
-        graph: String,
+        graph: Option<String>,
         /// Path to transforms referenced in existing graph.
         #[clap(short, long, value_parser)]
-        transforms: String,
-        /// Path to global transforms; To generate daughter language, each transform with a conditional that evaluates to true will be applied
+        transforms: Option<String>,
+        // path to a directory to read in all transform and graph files. Can be used instead of -t or -g
         #[clap(short, long, value_parser)]
-        daughter_transforms: String,
+        directory: Option<String>,
+        /// Path to global transforms used for the daughter language; To generate daughter language, each transform with a conditional that evaluates to true will be applied
+        #[clap(short='e', long, value_parser)]
+        daughter_etymology: String,
         /// the ancestor language as specified in the "language" field of the graph definition.
         #[clap(short, long, value_parser)]
         ancestor: String,
         /// The name of the daughter language. This will become the "language" field in the daughter Lexis
         #[clap(short, long, value_parser)]
-        name: String
+        name: String,
+        /// Output file to write the new language file to
+        #[clap(short, long, value_parser)]
+        output: String
     }
 }
 
