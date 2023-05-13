@@ -49,6 +49,12 @@ pub enum Word {
     String(String),
 }
 
+impl Default for Word{
+    fn default() -> Self {
+        Word::String("".to_string())
+    }
+}
+
 impl Serialize for Word{
  fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
      where

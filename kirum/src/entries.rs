@@ -52,15 +52,15 @@ impl From<RawLexicalEntry> for Lexis{
 
 impl From<Lexis> for RawLexicalEntry{
     fn from(value: Lexis) -> Self {
-        // TODO: don't blindly wrap in Some() statements, actually check contents
         RawLexicalEntry { word: value.word, 
-            word_type: Some(value.lexis_type), 
-            language: Some(value.language), 
+            word_type: if value.lexis_type != "" {Some(value.lexis_type)} else {None}, 
+            language: if value.language != "" {Some(value.language)} else {None}, 
             definition: value.definition, 
             part_of_speech: value.pos, 
             etymology: None, 
             archaic: value.archaic, 
-            tags: Some(value.tags) }
+            tags: if value.tags.len() > 0 {Some(value.tags)} else {None},
+        }
     }
 }
 
