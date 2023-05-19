@@ -67,7 +67,10 @@ impl PartialEq<String> for ValueMatch{
 
 impl PartialEq<Word> for ValueMatch{
     fn eq(&self, other: &Word) -> bool {
-        *self == other.to_string()
+        match other {
+            Word::Letters(l) => {*self == *l},
+            Word::String(s) => {*self == *s}
+        }
     }
 }
 
@@ -157,16 +160,6 @@ impl PartialEq<Vec<Lexis>> for EtymonMatch {
     }
 }
 
-// #[derive(Serialize, Deserialize, Debug, Clone)]
-// pub struct Match{
-//     pub lexis: LexisMatch,
-// }
-
-// impl Match {
-//     pub fn matches(&self, lex: &Lexis) -> bool{
-//             self.lexis == *lex
-//     }
-// }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum WhenMatch{
@@ -177,13 +170,6 @@ pub enum WhenMatch{
     #[serde(alias="after")]
     After
 }
-
-// pub fn global_matches_from_file(filepath: String) -> Result<Vec<GlobalMatch>, LangError>{
-//     let match_raw = std::fs::read_to_string(filepath).map_err(LangError::JSONImportError)?;
-//     let matches: Vec<GlobalMatch> = from_str(&match_raw).map_err(LangError::JSONSerdeError)?;
-
-//     Ok(matches)
-// }
 
 
 #[cfg(test)]

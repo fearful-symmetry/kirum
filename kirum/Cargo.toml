@@ -12,7 +12,7 @@ libkirum = { path = "../libkirum" }
 serde_json = "1.0"
 serde = { version = "1.0", features = ["derive"] }
 csv = "1.2.1"
-handlebars = "4.3.6"
+handlebars = {version="4.3.7", features=["script_helper"]}
 serde_with = {version = "3.0.0", features= ["json"]}
 walkdir = "2.3.3"
 log = "0.4.0"

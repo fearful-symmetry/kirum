@@ -25,7 +25,7 @@ impl Transform{
     // Transform the given lexis, or return None if the lex_match condition evaluates to false
     pub fn transform_option(&self, etymon: &Lexis) ->Option<Lexis>{
         let can_transform = if let Some(lex_match) = &self.lex_match{
-            lex_match.matches(&etymon)
+            lex_match.matches(etymon)
         } else {
             true
         };

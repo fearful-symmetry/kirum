@@ -1,9 +1,11 @@
 ## TODO:
-- read graph from multiple files
+- Docs
 - add regex/string replace transform
-- fix CSV encode
+- fix CSV encoding issues
 - word generation from phonetic rulesets?
-- verbose mode
-- generate family based on broad transformation rulesets
 - IPA support
 - higher-level transformations (vowel shifts, etc)
+- Templating and variables in lexical definitions
+- add trace-level log
+- add rhai scripts to transform
+- Add tests for tmpl.rs

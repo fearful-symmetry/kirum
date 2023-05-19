@@ -6,13 +6,14 @@ use serde_with::skip_serializing_none;
 
 #[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq)]
 pub enum PartOfSpeech {
-    #[serde(rename = "noun")]
+    #[serde(rename(deserialize= "noun", serialize="n."))]
     Noun,
-    #[serde(rename = "verb")]
+    #[serde(rename(deserialize="verb", serialize="v."))]
     Verb,
-    #[serde(rename = "adjective")]
+    #[serde(rename(deserialize= "adjective", serialize="adj."))]
     Adjective,
 }
+
 
 impl std::string::ToString for PartOfSpeech{
     fn to_string(&self) -> String {
@@ -38,7 +39,7 @@ pub struct Agglutination {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Edge {
     pub etymon: String,
-    pub transform: Vec<String>,
+    pub transforms: Vec<String>,
     pub agglutination_order: Option<i32>
 }
 

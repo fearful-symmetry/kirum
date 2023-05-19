@@ -89,11 +89,14 @@ pub enum Format{
      /// Print one word per line
     Line,
     /// Print language in CSV format
-    CSV,
+    Csv,
     /// Print language in format specified by a handlebars template file
     Template{
         /// Path to the .hbs template file
         #[clap(short, long, value_parser)]
-        template_file: String
+        template_file: String,
+        /// Optional rhai scripts for processing template data. See https://docs.rs/handlebars/latest/handlebars/#script-helper
+        #[clap(short, long, value_parser)]
+        rhai_files: Option<Vec<String>>
     }
 }

@@ -20,16 +20,26 @@ impl From<RawTransform> for Transform{
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct RawLexicalEntry {
     pub word: Option<Word>,
-    #[serde(rename = "type")]
+    #[serde(rename = "type", alias="lexis_type")]
     pub word_type: Option<String>,
     pub language: Option<String>,
     #[serde(default)]
     pub definition:String,
+    #[serde(alias = "pos")]
     pub part_of_speech: Option<PartOfSpeech>,
     pub etymology: Option<Etymology>,
     #[serde(default = "default_archaic")]
     pub archaic: bool,
-    pub tags: Option<Vec<String>>
+    pub tags: Option<Vec<String>>,
+
+    /// Words that will be added as a derivative of the enclosing Lexis; any value not specified will be taken from the enclosing entry.
+    pub derivatives: Option<Vec<Derivative>>
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct Derivative{
+    pub lexis: RawLexicalEntry,
+    pub transforms: Option<Vec<String>>
 }
 
 fn default_archaic() ->bool{
@@ -53,13 +63,14 @@ impl From<RawLexicalEntry> for Lexis{
 impl From<Lexis> for RawLexicalEntry{
     fn from(value: Lexis) -> Self {
         RawLexicalEntry { word: value.word, 
-            word_type: if value.lexis_type != "" {Some(value.lexis_type)} else {None}, 
-            language: if value.language != "" {Some(value.language)} else {None}, 
+            word_type: if !value.lexis_type.is_empty() {Some(value.lexis_type)} else {None}, 
+            language: if !value.language.is_empty() {Some(value.language)} else {None}, 
             definition: value.definition, 
             part_of_speech: value.pos, 
             etymology: None, 
             archaic: value.archaic, 
-            tags: if value.tags.len() > 0 {Some(value.tags)} else {None},
+            tags: if !value.tags.is_empty() {Some(value.tags)} else {None},
+            derivatives: None,
         }
     }
 }
