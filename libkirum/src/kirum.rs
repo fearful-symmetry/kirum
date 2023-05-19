@@ -7,7 +7,7 @@ use petgraph::dot::{Dot, Config};
 use petgraph::graph::EdgeReference;
 use petgraph::stable_graph::NodeIndex;
 use petgraph::{Graph, visit::EdgeRef};
-use log::debug;
+use log::trace;
 
 #[derive(Clone, Default, PartialEq, serde::Deserialize, serde::Serialize)]
 /// A Lexis represents a single entry in the language tree, be it a word, word stem, morpheme, etc.
@@ -197,13 +197,13 @@ impl LanguageTree {
                     if etymons_in_lex > 0 && is_ready{
                         changes+=1;
                         let rendered_word = join_string_vectors(&mut upstreams);
-                        debug!("updated node {} with word: {:?}", self.graph[node].id, rendered_word);
+                        trace!("updated node {} with word: {:?}", self.graph[node].id, rendered_word);
                         self.graph[node].word = Some(rendered_word);
                         updated.insert(node, true);
                     }
                     // we have a lexis with no upstream edges, but contains a word. mark as updated.
                     if self.graph[node].word.is_some() && etymons_in_lex == 0 {
-                        debug!("updated node {} with no upstreams: {:?}", self.graph[node].id, self.graph[node].word);
+                        trace!("updated node {} with no upstreams: {:?}", self.graph[node].id, self.graph[node].word);
                         changes+=1;
                         updated.insert(node, true);
                     }
@@ -220,7 +220,7 @@ impl LanguageTree {
                         //we have an unfilled edge, generate stem
                         let mut existing = edge.weight().clone();
                         let transformed = existing.apply_transforms(&self.graph[node]);
-                        debug!("updated edge with word {:?}", transformed.word);
+                        trace!("updated edge with word {:?}", transformed.word);
                         existing.intermediate_word = transformed.word;
                         changes+=1;
     

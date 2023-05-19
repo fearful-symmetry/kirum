@@ -5,9 +5,9 @@ use clap::Parser;
 #[clap(about = "A CLI conlang utility for generating a language or language family based on etymological rules")]
 #[clap(propagate_version = true)]
 pub struct Args {
-    // verbose output
-    #[arg(short, long)]
-    pub verbose: bool,
+    /// Verbose output. Specify multiple times for increased logging.
+    #[arg(short, long, action = clap::ArgAction::Count)]
+    pub verbose: u8,
     /// Output file; defaults to stdout if unspecified
     #[clap(short, long, value_parser)]
     pub output: Option<String>,

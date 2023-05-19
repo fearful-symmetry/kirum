@@ -16,10 +16,12 @@ extern crate log;
 fn main() -> Result<()> {
     let cli = cli::Args::parse();
 
-    let log_level: log::LevelFilter = if cli.verbose {
+    let log_level: log::LevelFilter = if cli.verbose == 0 {
+        LevelFilter::Info
+    } else if cli.verbose ==1 {
         LevelFilter::Debug
     } else {
-        LevelFilter::Info
+        LevelFilter::Trace
     };
     Builder::new().filter_level(log_level).init();
 
