@@ -1,0 +1,44 @@
+{
+    "words": {
+        "completed-word": {
+            "language":"English", "definition": "government of bureaus",
+            "etymology": {
+                "etymons":[
+                    {"etymon": "french-prefix", "transforms": ["loanword"], "agglutination_order": 0},
+                    {"etymon": "english-dem-suffix", "transforms": ["loanword"],"agglutination_order": 1}
+                ]
+            }
+        },
+        "french-prefix": {
+            "language": "French", "definition": "desk with drawers and papers, office",
+            "etymology": {
+                "etymons": [{"etymon": "old-french-prefix", "transforms": ["from-old-french"]}]
+            }
+        },
+        "old-french-prefix": {
+            "language": "Old French", "definition": "coarse cloth",
+            "etymology": {"etymons": [{"etymon": "latin-cloth", "transforms": ["from-latin", "from-latin-old-fr-diminutive"]}]
+            }
+        },
+        "latin-cloth": {
+            "word": "burra", "language": "Latin", "definition": "wool"
+        },
+        "english-dem-suffix": {
+            "language": "English", "definition": "rule or government by",
+            "etymology": {"etymons": [{"etymon": "french-dem-root", "transforms": ["english-from-french"]}]
+            }
+        },
+        "french-dem-root": {
+            "language": "French", "definition": "rule or government by",
+            "etymology": {"etymons": [{"etymon": "latin-dem-root", "transforms": ["from-latin"]}]
+            }
+        },
+        "latin-dem-root": {
+            "language": "Latin", "definition": "power, rule",
+            "etymology": {"etymons": [{"etymon": "greek-stem", "transforms":["from-greek"]}]}
+        },
+        "greek-stem": {
+            "word": "kratia", "language": "Greek", "definition": "power, rule"
+        }
+    }
+}

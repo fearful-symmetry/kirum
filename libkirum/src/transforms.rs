@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 use crate::{word::Word, matching::LexisMatch, kirum::Lexis};
-
+use log::debug;
 
 #[derive(Clone, Default)]
 pub struct Transform {
@@ -45,7 +45,7 @@ impl Transform{
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum TransformFunc {
     #[serde(rename="letter_replace")]
-    LetterReplace{letter: LetterValues, replace: LetterReplaceType},
+    LetterReplace{letter: LetterValues, replace: LetterPlaceType},
     #[serde(rename="letter_array")]
     LetterArray{letters: Vec<LetterArrayValues>},
     #[serde(rename="postfix")]
@@ -55,7 +55,13 @@ pub enum TransformFunc {
     #[serde(rename="loanword")]
     Loanword,
     #[serde(rename="letter_remove")]
-    LetterRemove{letter: String, position: LetterRemovePosition}
+    LetterRemove{letter: String, position: LetterPlaceType},
+    #[serde(rename="double")]
+    Double{letter: String, position: LetterPlaceType},
+    #[serde(rename="dedouble")]
+    DeDouble{letter: String, position: LetterPlaceType},
+    #[serde(rename="match_replace")]
+    MatchReplace{old: String, new: String}
 }
 
 
@@ -66,23 +72,40 @@ impl TransformFunc{
         }
         let new_word = match self {
             TransformFunc::LetterReplace{ letter, replace } => {
-               current_word.word.clone().unwrap().replace(letter.old.clone(), letter.new.clone(), replace)
+                debug!("got LetterReplace for {}", current_word.id);
+               current_word.word.clone().unwrap().replace(&letter.old, &letter.new, replace)
             },
             TransformFunc::LetterArray { letters } => {
+                debug!("got LetterArray for {}", current_word.id);
                 current_word.word.clone().unwrap().modify_with_array(letters) 
             },
             TransformFunc::Postfix { value } => {
+                debug!("got Postfix for {}", current_word.id);
                 current_word.word.clone().unwrap().add_postfix(value.clone())
             },
             TransformFunc::Prefix { value } => {
+                debug!("got Prefix for {}", current_word.id);
                 current_word.word.clone().unwrap().add_prefix(value.clone())
 
             },
             TransformFunc::Loanword => {
+                debug!("got Loanword for {}", current_word.id);
                 current_word.word.clone().unwrap()
             },
             TransformFunc::LetterRemove {letter, position } =>{
-                current_word.word.clone().unwrap().remove_char(letter.clone(), position.clone())
+                debug!("got LetterRemove for {}", current_word.id);
+                current_word.word.clone().unwrap().remove_char(letter, position)
+            },
+            TransformFunc::Double { letter, position } => {
+                debug!("got Double for {}", current_word.id);
+                current_word.word.clone().unwrap().double(letter, position)
+            },
+            TransformFunc::DeDouble { letter, position } => {
+                debug!("got DeDouble for {}", current_word.id);
+                current_word.word.clone().unwrap().dedouble(letter, position)
+            },
+            TransformFunc::MatchReplace { old, new } => {
+                current_word.word.clone().unwrap().match_replace(old, new)
             }
         };
         Lexis{word: Some(new_word), ..current_word.clone()}
@@ -97,21 +120,13 @@ pub struct LetterValues{
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
-pub enum LetterRemovePosition{
-    #[serde(rename="first")]
-    First,
-    #[serde(rename="last")]
-    Last,
-    #[serde(rename="all")]
-    All
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub enum LetterReplaceType {
+pub enum LetterPlaceType {
     #[serde(rename="first")]
     First,
     #[serde(rename="all")]
     All,
+    #[serde(rename="last")]
+    Last,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -124,19 +139,19 @@ pub enum LetterArrayValues{
 
 #[cfg(test)]
 mod tests {
-    use crate::transforms::{TransformFunc, LetterValues, LetterReplaceType, LetterArrayValues, LetterRemovePosition};
+    use crate::transforms::{TransformFunc, LetterValues, LetterPlaceType, LetterArrayValues};
     use crate::kirum::Lexis;
     use crate::word::Word;
 
     #[test]
     fn test_letter_replace(){
         let letter_logic = LetterValues { old: "u".to_string(), new: "a".to_string() };
-        let test_transform = TransformFunc::LetterReplace { letter: letter_logic, replace:  LetterReplaceType::All};
+        let test_transform = TransformFunc::LetterReplace { letter: letter_logic, replace:  LetterPlaceType::All};
         let old_word = Lexis{word: Some("kurum".into()), ..Default::default() };
         
         let new_word = test_transform.transform(&old_word);
         let compare: Word = "karam".into();
-        assert_eq!(compare, new_word.word.unwrap());
+        assert_eq!(compare.to_string(), new_word.word.unwrap().to_string());
     }
 
     #[test]
@@ -169,17 +184,17 @@ mod tests {
 
     #[test]
     fn test_letter_remove(){
-        let test_transform = TransformFunc::LetterRemove { letter: "u".to_string(), position: LetterRemovePosition::All };
+        let test_transform = TransformFunc::LetterRemove { letter: "u".to_string(), position: LetterPlaceType::All };
         let old_word = Lexis{word: Some("kurum".into()), ..Default::default()};
     
         let new_word = test_transform.transform(&old_word);
         assert_eq!("krm".to_string(), new_word.word.unwrap().to_string());
         
-        let test_transform_first = TransformFunc::LetterRemove { letter: "u".to_string(), position: LetterRemovePosition::First };
+        let test_transform_first = TransformFunc::LetterRemove { letter: "u".to_string(), position: LetterPlaceType::First };
         let new_word_first = test_transform_first.transform(&old_word);
         assert_eq!("krum".to_string(), new_word_first.word.unwrap().to_string());
 
-        let test_transform_last = TransformFunc::LetterRemove { letter: "u".to_string(), position: LetterRemovePosition::Last };
+        let test_transform_last = TransformFunc::LetterRemove { letter: "u".to_string(), position: LetterPlaceType::Last };
         let new_word_last = test_transform_last.transform(&old_word);
         assert_eq!("kurm".to_string(), new_word_last.word.unwrap().to_string());
     }

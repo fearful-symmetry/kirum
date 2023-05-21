@@ -1,0 +1,34 @@
+{
+    "transforms": {
+        "loanword": {
+            "transforms": ["loanword"]
+        },
+        "from-old-french": {
+            "transforms": [
+                {"letter_remove": {"letter": "l", "position": "last"}},
+                {"letter_replace": {"letter": {"old":"e", "new":"eau"},"replace": "all"}}
+            ]
+        },
+        "from-latin": {
+            "transforms": [
+                {"dedouble": {"letter": "r", "position": "first"}},
+                {"letter_replace": {"letter": {"old": "a", "new":"e"}, "replace": "last"}}
+            ]
+        },
+        "english-from-french": {
+            "transforms": [
+                {"match_replace": {"old": "tie", "new": "cy"}}
+            ]
+        },
+        "from-latin-old-fr-diminutive": {
+            "transforms": [
+                {"postfix": {"value": "l"}} 
+            ]
+        },
+        "from-greek": {
+            "transforms": [
+                {"letter_replace": {"letter": {"old": "k", "new": "c"}, "replace": "all"}}
+            ]
+        }
+    }
+}

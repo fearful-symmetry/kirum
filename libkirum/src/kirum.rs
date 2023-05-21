@@ -405,7 +405,7 @@ mod tests {
         
         let proto_transform = Transform{name: "proto-transform".to_string(), 
         lex_match: None, 
-        transforms: vec![TransformFunc::LetterReplace { letter: LetterValues{old: "w".to_string(), new: "v".to_string()}, replace: transforms::LetterReplaceType::All }]};
+        transforms: vec![TransformFunc::LetterReplace { letter: LetterValues{old: "w".to_string(), new: "v".to_string()}, replace: transforms::LetterPlaceType::All }]};
         
         let mut tree = create_basic_words();
         tree.connect_etymology(root, proto_word, vec![proto_transform], None);
@@ -455,8 +455,8 @@ mod tests {
                 tags: None
             }),
             transforms: vec![
-                TransformFunc::LetterReplace { letter: LetterValues { old: "w".to_string(), new: "k".to_string() }, replace: transforms::LetterReplaceType::All },
-                TransformFunc::LetterRemove { letter: "u".to_string(), position: transforms::LetterRemovePosition::All },
+                TransformFunc::LetterReplace { letter: LetterValues { old: "w".to_string(), new: "k".to_string() }, replace: transforms::LetterPlaceType::All },
+                TransformFunc::LetterRemove { letter: "u".to_string(), position: transforms::LetterPlaceType::All },
             ]
         }];
 

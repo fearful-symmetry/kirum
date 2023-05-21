@@ -48,16 +48,14 @@ pub fn read_from_files(transforms:Vec<PathBuf>, graphs:Vec<PathBuf>) -> Result<L
         // connect derivatives
         if let Some(derivatives) = &node.derivatives {
             debug!("Node {} has derivatives, adding", lex_name);
-            let mut count = 0;
-            for der in derivatives {
+            for (count, der) in derivatives.iter().enumerate() {
                 let der_id = format!("{}-autoderive-{}", lex_name, count);
                 let der_lex = Lexis{id: der_id, ..der.lexis.clone().into()};
                 let der_transforms: Vec<Transform> = match &der.transforms{
-                    Some(t) => {find_transforms(&t, &transform_map)?},
+                    Some(t) => {find_transforms(t, &transform_map)?},
                     None => Vec::new(),
                 };
                 tree.connect_etymology(der_lex, node_lex.clone(), der_transforms, None);
-                count+=1;
             }
         };
         
