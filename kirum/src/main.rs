@@ -6,7 +6,7 @@ use clap::Parser;
 use anyhow::{Result, Context, anyhow};
 use libkirum::{kirum::{Lexis, LanguageTree}, transforms::{Transform}};
 use std::{fs::File, io::Write, path::PathBuf};
-use csv::WriterBuilder;
+//use csv::WriterBuilder;
 use env_logger::{Builder};
 use log::LevelFilter;
 

@@ -4,8 +4,16 @@
             "language":"English", "definition": "government defined by red tape, paperwork, officialism",
             "etymology": {
                 "etymons":[
+                    {"etymon": "french-modern-word", "transforms": ["english-from-french"]}
+                ]
+            }
+        },
+        "french-modern-word": {
+            "language":"French", "definition": "government defined by red tape, paperwork, officialism",
+            "etymology": {
+                "etymons":[
                     {"etymon": "french-prefix", "transforms": ["loanword"], "agglutination_order": 0},
-                    {"etymon": "english-dem-suffix", "transforms": ["loanword"],"agglutination_order": 1}
+                    {"etymon": "french-dem-root", "transforms": ["loanword"],"agglutination_order": 1}
                 ]
             }
         },
@@ -22,11 +30,6 @@
         },
         "latin-cloth": {
             "word": "burra", "language": "Latin", "definition": "wool"
-        },
-        "english-dem-suffix": {
-            "language": "English", "definition": "rule or government by",
-            "etymology": {"etymons": [{"etymon": "french-dem-root", "transforms": ["english-from-french"]}]
-            }
         },
         "french-dem-root": {
             "language": "French", "definition": "rule or government by",
