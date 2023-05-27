@@ -20,8 +20,8 @@ This will create a basic project file under a `my_first_project` directory. From
 ```
 $ kirum render -d my_first_project/ line
     essemple (Old French) model, example
-    exemplum (Latin): (Noun) an instance, model, example
-    emere (Latin): (Verb) To buy, remove
+    exemplum (Latin) (Noun) an instance, model, example
+    emere (Latin) (Verb) To buy, remove
 ```
 
 Check out the example projects in the [`examples`](examples) directory for reference.
@@ -31,7 +31,7 @@ Check out the example projects in the [`examples`](examples) directory for refer
 
 ### Graphing and changing the etymology of a word
 
-Using [This example](example/bureaucracy) can use kirum to graph the (simplified) etymology of the English word _bureaucracy_ using a tree file:
+Using [this example](examples/bureaucracy) can use kirum to graph the (simplified) etymology of the English word _bureaucracy_ using a tree file:
 
 ```json
 {
