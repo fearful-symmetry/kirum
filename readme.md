@@ -7,11 +7,31 @@ Unlike many conlang tools, which allow you to generate words based on phonetic r
 
 Kirum is a work in progress, and should be considered alpha software. Major features are currently planned, including the ability to generate languages/words from phonetic rulesets, and IPA support.
 
+## Getting Started
+
+To create your first project, simply run `kirum new [NAME]`:
+```
+$ kirum new my_first_project
+[2023-05-27T19:57:10Z INFO  kirum] created new project my_first_project
+```
+
+This will create a basic project file under a `my_first_project` directory. From there on, you can render your project to a lexicon:
+
+```
+$ kirum render -d my_first_project/ line
+    essemple (Old French) model, example
+    exemplum (Latin): (Noun) an instance, model, example
+    emere (Latin): (Verb) To buy, remove
+```
+
+Check out the example projects in the [`examples`](examples) directory for reference.
+
+
 ## Examples
 
 ### Graphing and changing the etymology of a word
 
-We can use kirum to graph the (simplified) etymology of the English word _bureaucracy_ using a tree file:
+Using [This example](example/bureaucracy) can use kirum to graph the (simplified) etymology of the English word _bureaucracy_ using a tree file:
 
 ```json
 {
@@ -150,7 +170,7 @@ $ kirum render -d examples/generate_daughter line
     vedn (Old Exemplum): (Noun) Water that falls from the sky
 ```
 
-We can use the etymology file in `examples/generate_daughter/transforms/generate_daughter_transform.json`, to generate a new language, `Middle Exemplum`, which will replace all instances of the vowel `e` with `ai` and de-double the consonant `t`:
+We can use the etymology file [here](examples/generate_daughter/etymology/example_daughter_transform.json), to generate a new language, `Middle Exemplum`, which will replace all instances of the vowel `e` with `ai` and de-double the consonant `t`:
 ```
 $ kirum generate daughter -d examples/generate_daughter -a "Old Exemplum" -n "Middle Exemplum" -e examples/generate_daughter/etymology/example_daughter_transform.json -o examples/generate_daughter/tree/middle_exemplum.json
 [2023-05-27T01:01:17Z INFO  kirum] wrote daughter Middle Exemplum to examples/generate_daughter/tree/middle_exemplum.json
