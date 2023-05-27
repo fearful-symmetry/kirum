@@ -1,5 +1,7 @@
 # Kirum
 
+![example workflow](https://github.com/fearful-symmetry/kirum/actions/workflows/rust.yml/badge.svg)
+
 Kirum (from Standard Babylonian _Kirûm_ meaning _garden_ or _orchard_) is a conlang CLI utility and library.
 Unlike many conlang tools, which allow you to generate words based on phonetic rules, Kirum can generate entire languages, or language families, based on specified etymology. Kirum also takes a "pets not cattle" approach to conlang tooling, allowing users to store and graph the entire history of a language family, down to individual morphemes.
 
