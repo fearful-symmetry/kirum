@@ -4,16 +4,23 @@ use libkirum::{word::{Word, PartOfSpeech, Etymology}, kirum::Lexis, transforms::
 use serde::{Serialize, Deserialize};
 use serde_with::skip_serializing_none;
 
+#[skip_serializing_none]
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct RawTransform{
     pub transforms: Vec<TransformFunc>,
     pub conditional: Option<LexisMatch>
 }
 
+
 impl From<RawTransform> for Transform{
     fn from(value: RawTransform) -> Self {
         Transform { name: String::new(), lex_match: value.conditional, transforms: value.transforms}
     }
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct TransformGraph {
+    pub transforms: HashMap<String, RawTransform>
 }
 
 #[skip_serializing_none]

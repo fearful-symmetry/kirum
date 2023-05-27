@@ -4,6 +4,7 @@ mod files;
 mod tmpl;
 use clap::Parser;
 use anyhow::{Result, Context, anyhow};
+use files::create_new_project;
 use libkirum::{kirum::{Lexis, LanguageTree}, transforms::{Transform}};
 use std::{fs::File, io::Write, path::PathBuf};
 //use csv::WriterBuilder;
@@ -26,6 +27,10 @@ fn main() -> Result<()> {
     Builder::new().filter_level(log_level).init();
 
     let out_data: String = match cli.command{
+        cli::Commands::New { name } => {
+            create_new_project(&name)?;
+            format!("created new project {}", name)
+        },
         cli::Commands::Graphviz{transforms, graph, directory} =>{
             let computed = read_and_compute(transforms, graph, directory)?;
             computed.graphviz()
@@ -62,7 +67,7 @@ fn main() -> Result<()> {
                     .context("error reading existing graph and transforms")?;
                     let trans_raw = std::fs::read_to_string(daughter_etymology.clone())
                     .context(format!("error reading daughter transformation file {}", daughter_etymology))?;
-                    let daughter_transform_map: files::TransformGraph = serde_json::from_str(&trans_raw)
+                    let daughter_transform_map: entries::TransformGraph = serde_json::from_str(&trans_raw)
                     .context("error parsing daughter transformations")?;
 
                     let processed_transforms: Vec<Transform> = daughter_transform_map.transforms.into_iter()

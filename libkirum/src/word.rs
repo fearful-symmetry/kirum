@@ -252,7 +252,7 @@ impl Word{
                 double_vec(self.chars(), letter, found, false)
             },
             LetterPlaceType::Last => {
-                let mut found = self.clone().chars();
+                let mut found = self.chars();
                 found.reverse();
                 let found_pos = found.clone().into_iter().position(|c|c == letter);
                 double_vec(found, letter, found_pos, true)
@@ -310,7 +310,7 @@ impl Word{
 
 fn double_vec(current: Vec<String>, letter: &str, found_pos: Option<usize>, reverse: bool) -> Word {
     let mut updated: Vec<String> = current;
-    found_pos.map(|pos| updated.insert(pos, letter.to_owned()));
+    if let Some(pos) = found_pos { updated.insert(pos, letter.to_owned()) }
     if reverse{
         updated.reverse();
     }

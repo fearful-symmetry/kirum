@@ -18,6 +18,10 @@ pub struct Args {
 
 #[derive(clap::Subcommand, Clone)]
 pub enum Commands{
+    /// Create a new language project with the specified name
+    New{
+        name: String
+    },
     /// Print a graphviz representation of the language
     Graphviz{
         /// JSON file of defined etymon transforms
