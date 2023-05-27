@@ -1,0 +1,22 @@
+{
+    "words": {
+        "o-exemplum-garden": {
+            "definition": "A cultivated plot of earth",
+            "language": "Old Exemplum",
+            "pos": "noun",
+            "word": "chade"
+        },
+        "o-exemplum-mushroom": {
+            "definition": "A type of fungi",
+            "language": "Old Exemplum",
+            "pos": "noun",
+            "word": "shott"
+        },
+        "o-exemplum-rain": {
+            "definition": "Water that falls from the sky",
+            "language":"Old Exemplum",
+            "pos": "noun",
+            "word": "vedn"
+        }
+    }
+}

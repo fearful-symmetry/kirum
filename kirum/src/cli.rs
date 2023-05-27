@@ -88,8 +88,8 @@ pub enum Generate{
 pub enum Format{
      /// Print one word per line
     Line,
-    /// Print language in CSV format
-    Csv,
+    // Print language in CSV format
+    //Csv,
     /// Print language in format specified by a handlebars template file
     Template{
         /// Path to the .hbs template file

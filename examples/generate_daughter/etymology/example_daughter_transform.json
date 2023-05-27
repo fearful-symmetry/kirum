@@ -1,0 +1,31 @@
+{
+    "transforms":{
+        "consonant-dedouble":{
+            "transforms":[
+                {
+                    "dedouble": {
+                        "letter":"t",
+                        "position": "all"
+                    }
+                }
+            ]
+        },
+        "vowel-o-change":{
+            "transforms":[
+                {
+                    "letter_replace":{
+                        "letter": {"old": "e", "new":"ai"},
+                        "replace": "all"
+                    }
+                }
+            ],
+            "conditional":{
+                "pos": {
+                    "match":{
+                        "equals": "noun"
+                    }
+                }
+            }
+        }
+    }
+}

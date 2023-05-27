@@ -42,6 +42,11 @@ pub struct Derivative{
     pub transforms: Option<Vec<String>>
 }
 
+#[derive(Serialize, Deserialize, Debug)]
+pub struct WordGraph {
+    pub words: HashMap<String, RawLexicalEntry>,
+}
+
 fn default_archaic() ->bool{
     false
 }
@@ -76,7 +81,7 @@ impl From<Lexis> for RawLexicalEntry{
 }
 
 // take the output of a call to to_vec_etymons() and structure it like a graph json file structure
-pub fn create_json_graph(lex: Vec<(Lexis, Etymology)>) -> HashMap<String, RawLexicalEntry>{
+pub fn create_json_graph(lex: Vec<(Lexis, Etymology)>) -> WordGraph{
     let mut graph: HashMap<String, RawLexicalEntry> = HashMap::new();
 
     for (word, ety) in lex{
@@ -85,5 +90,5 @@ pub fn create_json_graph(lex: Vec<(Lexis, Etymology)>) -> HashMap<String, RawLex
         let key = format!("daughter-gen-{}", word.clone().word.unwrap().to_string());
         graph.insert(key, complete);
     }
-    graph
+    WordGraph { words: graph }
 }

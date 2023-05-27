@@ -2,13 +2,10 @@ use std::{path::{PathBuf, Path}, collections::HashMap};
 use anyhow::{Result, Context, anyhow};
 use libkirum::{kirum::{LanguageTree, Lexis}, transforms::Transform, word::Etymology};
 use walkdir::{WalkDir, DirEntry};
-use crate::entries::{RawTransform, RawLexicalEntry};
+use crate::entries::{RawTransform, RawLexicalEntry, WordGraph};
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize, Debug)]
-pub struct WordGraph {
-    pub words: HashMap<String, RawLexicalEntry>,
-}
+
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct TransformGraph {
@@ -74,9 +71,16 @@ fn add_single_word(tree: &mut LanguageTree, trans_map: &HashMap<String, RawTrans
                 let word_transforms = find_transforms(&e.transforms, trans_map)?;
 
                 let ety_lex: RawLexicalEntry = lex_map.get(&e.etymon).context(format!("etymon {} does not exist ", &e.etymon))?.clone();
+                debug!("adding lex {} with etymon {}", node_lex.id, e.etymon);
                 tree.connect_etymology(node_lex.clone(), Lexis { id: e.etymon.clone(), ..ety_lex.into()}, word_transforms, e.agglutination_order);
             }
-
+        } else {
+            debug!("Adding lex {} without etymology", node_lex.id);
+            // connect_etymology checks for duplicates, add_lexis does not
+            if !tree.contains(node_lex) {
+                tree.add_lexis(node_lex.clone())
+            }
+            
         }
     Ok(())
 }

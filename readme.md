@@ -3,7 +3,13 @@
 Kirum (from Standard Babylonian _Kirûm_ meaning _garden_ or _orchard_) is a conlang CLI utility and library.
 Unlike many conlang tools, which allow you to generate words based on phonetic rules, Kirum can generate entire languages, or language families, based on specified etymology. Kirum also takes a "pets not cattle" approach to conlang tooling, allowing users to store and graph the entire history of a language family, down to individual morphemes.
 
-As an example, we can use kirum to graph the (simplified) etymology of the English word _bureaucracy_ using a tree file:
+Kirum is a work in progress, and should be considered alpha software. Major features are currently planned, including the ability to generate languages/words from phonetic rulesets, and IPA support.
+
+## Examples
+
+### Graphing and changing the etymology of a word
+
+We can use kirum to graph the (simplified) etymology of the English word _bureaucracy_ using a tree file:
 
 ```json
 {
@@ -94,7 +100,7 @@ We can then use `kirum` to render the complete lexicon for our language etymolog
 $ kirum render -d examples/bureaucracy line
     burel (Old French) coarse cloth
     bureau (French) desk with drawers and papers, office
-    bureaucracy (English) government of bureaus
+    bureaucracy (English) government defined by red tape, paperwork, officialism
     cracy (English) rule or government by
     cratia (Latin) power, rule
     cratie (French) rule or government by
@@ -109,7 +115,7 @@ We can then see our target word, _bureaucracy_, along with all intermediate word
 
 Our above `render` command will then generate:
 ```
-burracracy (English) government of bureaus
+burracracy (English) government defined by red tape, paperwork, officialism
 ```
 
 We can also use a similarly simple one-line change to imagine what would happen if the original latin root was _purra_ instead of _burra_, and re-generate our entire lexicon:
@@ -120,23 +126,40 @@ kirum render -d examples/bureaucracy line
     cratie (French) rule or government by
     purel (Old French) coarse cloth
     pureau (French) desk with drawers and papers, office
-    pureaucracy (English) government of bureaus
+    pureaucracy (English) government defined by red tape, paperwork, officialism
     kratia (Greek) power, rule
     purra (Latin) wool
 ```
 
 This is the core of Kirum's functionality; by storing the relationship between words, instead of words themselves, we can easily make fundamental changes to a conlang, and quickly re-generate the entire lexicon.
 
-### TODO:
-- Docs
-- fix CSV encoding issues
-- word generation from phonetic rulesets?
-- IPA support
-- higher-level transformations (vowel shifts, etc)
-- Templating and variables in lexical definitions
-- add rhai scripts to transform
-- Add tests for tmpl.rs
-- Make cool spinner for background tasks
-- Redo Word type, a word should probably be a String + metadata about individual characters
-- transforms should be optional
-- Some kind of "auto-derive" functionality
+
+### Generating a Daughter Language
+
+Kirum has the ability to generate a daughter language from an existing language using only an additional etymology file.
+For example, the language under `examples/generate_daughter` has a simple three-word lexicon, with the language `Old Exemplum`:
+```
+$ kirum render -d examples/generate_daughter line 
+    chade (Old Exemplum): (Noun) A cultivated plot of earth
+    shott (Old Exemplum): (Noun) A type of fungi
+    vedn (Old Exemplum): (Noun) Water that falls from the sky
+```
+
+We can easily crete a new language using the etymology file in `examples/generate_daughter/transforms/generate_daughter_transform.json`, to generate a new language, `Middle Exemplum`, which will replace all instances of the vowel `e` with `ai` and de-double the consonant `t`:
+```
+$ kirum generate daughter -d examples/generate_daughter -a "Old Exemplum" -n "Middle Exemplum" -e examples/generate_daughter/etymology/example_daughter_transform.json -o examples/generate_daughter/tree/middle_exemplum.json
+[2023-05-27T01:01:17Z INFO  kirum] wrote daughter Middle Exemplum to examples/generate_daughter/tree/middle_exemplum.json
+
+$ kirum render -d examples/generate_daughter line
+    chadai (Middle Exemplum): (Noun) A cultivated plot of earth
+    shot (Middle Exemplum): (Noun) A type of fungi
+    vaidn (Middle Exemplum): (Noun) Water that falls from the sky
+    chade (Old Exemplum): (Noun) A cultivated plot of earth
+    shott (Old Exemplum): (Noun) A type of fungi
+    vedn (Old Exemplum): (Noun) Water that falls from the sky
+```
+
+
+## The structure of `tree` and `etymology` files
+
+`kirum` generates languages from two files: A tree file, which contains a lexicon of words, stems, roots, etc, and an etymology file, which contains data on the transforms between words. The transform files can also contain conditional statements that determine if a transform should be applied to a word.

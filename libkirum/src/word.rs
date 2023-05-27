@@ -6,11 +6,11 @@ use log::error;
 
 #[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq)]
 pub enum PartOfSpeech {
-    #[serde(rename(deserialize= "noun", serialize="n."))]
+    #[serde(rename(deserialize= "noun", serialize="noun"))]
     Noun,
-    #[serde(rename(deserialize="verb", serialize="v."))]
+    #[serde(rename(deserialize="verb", serialize="verb"))]
     Verb,
-    #[serde(rename(deserialize= "adjective", serialize="adj."))]
+    #[serde(rename(deserialize= "adjective", serialize="adjective"))]
     Adjective,
 }
 

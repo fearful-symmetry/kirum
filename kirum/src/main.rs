@@ -41,14 +41,14 @@ fn main() -> Result<()> {
                     }
                     acc
                 },
-                cli::Format::Csv =>{
-                    let mut wrt = WriterBuilder::new().has_headers(true).from_writer(vec![]);
-                    for word in rendered_dict {
-                        wrt.serialize(word)?;
+                // cli::Format::Csv =>{
+                //     let mut wrt = WriterBuilder::new().has_headers(true).from_writer(vec![]);
+                //     for word in rendered_dict {
+                //         wrt.serialize(word)?;
                         
-                    }
-                   String::from_utf8(wrt.into_inner()?)?
-                },
+                //     }
+                //    String::from_utf8(wrt.into_inner()?)?
+                // },
                 cli::Format::Template { template_file, rhai_files } =>{
                     tmpl::generate_from_tmpl(rendered_dict, template_file, rhai_files)?
                 }
@@ -74,10 +74,10 @@ fn main() -> Result<()> {
 
                     let rendered_dict = computed.to_vec_etymons(|word|word.language == lang_name);
 
-                    let mut acc = String::new();
-                    for (word, ety) in rendered_dict.clone() {
-                        acc = format!("{}\n{:?} | etymons: {:?}", acc, word, ety)
-                    }
+                    let acc = String::new();
+                    // for (word, ety) in rendered_dict.clone() {
+                    //     acc = format!("{}\n{:?} | etymons: {:?}", acc, word, ety)
+                    // }
                     // generate JSON that we can save to a file, re-ingest later
                     let graph = entries::create_json_graph(rendered_dict);
                     let graph_data = serde_json::to_string_pretty(&graph)?;

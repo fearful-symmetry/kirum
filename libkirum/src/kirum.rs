@@ -110,6 +110,16 @@ impl LanguageTree {
         self.graph.add_node(lex);
     }
 
+    pub fn contains(&self, lex: &Lexis) -> bool {
+        for nx in self.graph.node_indices(){ 
+            if &self.graph[nx] == lex {
+                return true
+            }
+        }
+
+        false
+    }
+
     /// A quick and ugly helper that returns a graphviz.dot render of the graph. Useful for debugging.
     pub fn graphviz(&self) -> String{
        format!("{:?}", Dot::with_config(&self.graph, &[Config::EdgeNoLabel])) 
@@ -437,6 +447,27 @@ mod tests {
         assert_eq!(out_words.contains(&"warh".to_string()), true);
         assert_eq!(out_words.contains(&"auwarh".to_string()), true);
 
+    }
+
+    #[test]
+    fn test_words_without_etymology() {
+        let parent = Lexis{id: "isolate_one".to_string(), word: Some("tree".into()), language: "gauntlet".to_string(), lexis_type: "word".to_string(), ..Default::default()};
+        let lex_one = Lexis{id: "isolate_two".to_string(), word: Some("frost".into()), lexis_type: "word".to_string(), ..parent.clone()};
+        let lex_two = Lexis{id: "isolate_three".to_string(), word: Some("rain".into()), lexis_type: "word".to_string(), ..parent.clone()};
+    
+        let mut tree = LanguageTree::new();
+        tree.add_lexis(parent);
+        tree.add_lexis(lex_one);
+        tree.add_lexis(lex_two);
+        tree.compute_lexicon();
+
+        let out = tree.to_vec();
+
+        let out_words: Vec<String> = out.into_iter().map(|l| l.word.unwrap_or_default().to_string()).collect();
+
+        assert_eq!(out_words.contains(&"tree".to_string()), true);
+        assert_eq!(out_words.contains(&"frost".to_string()), true);
+        assert_eq!(out_words.contains(&"rain".to_string()), true);
     }
 
     #[test]
