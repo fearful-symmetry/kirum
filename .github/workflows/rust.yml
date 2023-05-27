@@ -20,3 +20,16 @@ jobs:
       run: cargo build --verbose
     - name: Run tests
       run: cargo test --verbose
+
+  examples:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+    - name: Generate Daughter
+      run: cargo run -- generate daughter -d examples/generate_daughter -a "Old Exemplum" -n "Middle Exemplum" -e examples/generate_daughter/etymology/example_daughter_transform.json -o examples/generate_daughter/tree/middle_exemplum.json
+    - name: Post-Generate Daughter render
+      run: cargo run -- render -d examples/generate_daughter line
+
+    - name: Bureaucracy
+      run: cargu run -- render -d examples/bureaucacy line
