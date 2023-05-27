@@ -148,7 +148,7 @@ $ kirum render -d examples/generate_daughter line
     vedn (Old Exemplum): (Noun) Water that falls from the sky
 ```
 
-We can easily crete a new language using the etymology file in `examples/generate_daughter/transforms/generate_daughter_transform.json`, to generate a new language, `Middle Exemplum`, which will replace all instances of the vowel `e` with `ai` and de-double the consonant `t`:
+We can use the etymology file in `examples/generate_daughter/transforms/generate_daughter_transform.json`, to generate a new language, `Middle Exemplum`, which will replace all instances of the vowel `e` with `ai` and de-double the consonant `t`:
 ```
 $ kirum generate daughter -d examples/generate_daughter -a "Old Exemplum" -n "Middle Exemplum" -e examples/generate_daughter/etymology/example_daughter_transform.json -o examples/generate_daughter/tree/middle_exemplum.json
 [2023-05-27T01:01:17Z INFO  kirum] wrote daughter Middle Exemplum to examples/generate_daughter/tree/middle_exemplum.json
