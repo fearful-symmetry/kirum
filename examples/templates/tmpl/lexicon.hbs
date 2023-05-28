@@ -1,0 +1,8 @@
+== Lexicon
+
+{{#each this}}
+{{#if this.pos}}
+_{{this.word}}_ {{shorten_pos this.pos}}. '{{this.definition}}'.
+
+{{/if}}
+{{/each}}
