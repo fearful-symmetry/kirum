@@ -1,0 +1,33 @@
+{
+    "transforms":{
+        "vowel-replace":{
+            "transforms":[
+                {
+                    "letter_replace":{
+                        "letter": {"old": "o", "new":"ua"},
+                        "replace": "all"
+                    }
+                }
+            ],
+            "conditional":{
+                "archaic": false
+            }
+        },
+        "add-postfix":{
+            "transforms":[
+                {
+                    "postfix":{
+                        "value": "in"
+                    }
+                }
+            ],
+            "conditional":{
+                "pos": {
+                    "match":{
+                        "oneof": ["noun", "verb"]
+                    }
+                }
+            }
+        }
+    }
+}

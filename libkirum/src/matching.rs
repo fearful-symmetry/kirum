@@ -166,7 +166,7 @@ pub enum WhenMatch{
     /// Before will match a lexis before it has been transformed by any other non-global transforms
     #[serde(alias="before")]
     Before,
-    /// After will match a lexis after a word has been genterated for that lexis
+    /// After will match a lexis after a word has been generated for that lexis
     #[serde(alias="after")]
     After
 }

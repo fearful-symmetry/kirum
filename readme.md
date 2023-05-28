@@ -32,6 +32,7 @@ The [`examples`](examples) directory has a number of projects:
 - [bureaucracy](examples/bureaucracy/) - A basic example that demonstrates how to use etymology graphs to make changes to the history of a word.
 - [generate_daugher](examples/generate_daughter/) - An example of how to use the `generate` subcommand to create a daughter language from a parent language.
 - [templates](examples/templates/) - Using a handlebars template to output an asciidoc dictionary.
+- [conditionals](examples/conditionals/) - Using conditional statements in transforms.
 
 
 ## The structure of `tree` and `etymology` files
