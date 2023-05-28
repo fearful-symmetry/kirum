@@ -47,7 +47,7 @@ pub fn create_new_project(name: &str) -> Result<()> {
         language: Some("Latin".into()), 
         definition: "an instance, model, example".into(), 
         part_of_speech: Some(libkirum::word::PartOfSpeech::Noun), 
-        etymology: Some(Etymology { etymons: vec![Edge{etymon: "latin_verb".into(), transforms: vec!["latin-from-verb".into()], agglutination_order: None}] }), 
+        etymology: Some(Etymology { etymons: vec![Edge{etymon: "latin_verb".into(), transforms: Some(vec!["latin-from-verb".into()]), agglutination_order: None}] }), 
         archaic: true, 
         tags: Some(vec!["example".into(), "default".into()]), 
         derivatives: Some(vec![Derivative{lexis: RawLexicalEntry { 
@@ -144,8 +144,10 @@ fn add_single_word(tree: &mut LanguageTree, trans_map: &HashMap<String, RawTrans
             // iterate through all etymons associated with the base word, construct the transforms and add the etymology for each
             for e in &etymon.etymons{
                 // fetch transform list
-                let word_transforms = find_transforms(&e.transforms, trans_map)?;
-
+                let word_transforms = match &e.transforms {
+                    Some(tf) =>  find_transforms(tf, trans_map)?,
+                    None => vec![Transform{name: "loanword".into(), lex_match: None, transforms: vec![TransformFunc::Loanword]}]
+                };
                 let ety_lex: RawLexicalEntry = lex_map.get(&e.etymon).context(format!("etymon {} does not exist ", &e.etymon))?.clone();
                 debug!("adding lex {} with etymon {}", node_lex.id, e.etymon);
                 tree.connect_etymology(node_lex.clone(), Lexis { id: e.etymon.clone(), ..ety_lex.into()}, word_transforms, e.agglutination_order);

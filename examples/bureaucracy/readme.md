@@ -17,8 +17,8 @@ Using this example can use kirum to graph the (simplified) etymology of the Engl
             "language":"French", "definition": "government defined by red tape, paperwork, officialism",
             "etymology": {
                 "etymons":[
-                    {"etymon": "french-prefix", "transforms": ["loanword"], "agglutination_order": 0},
-                    {"etymon": "french-dem-root", "transforms": ["loanword"],"agglutination_order": 1}
+                    {"etymon": "french-prefix", "agglutination_order": 0},
+                    {"etymon": "french-dem-root", "agglutination_order": 1}
                 ]
             }
         },
@@ -55,9 +55,6 @@ And the etymology file:
 ```json
 {
     "transforms": {
-        "loanword": {
-            "transforms": ["loanword"]
-        },
         "from-old-french": {
             "transforms": [
                 {"letter_remove": {"letter": "l", "position": "last"}},

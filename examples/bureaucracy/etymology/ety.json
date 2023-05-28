@@ -1,8 +1,5 @@
 {
     "transforms": {
-        "loanword": {
-            "transforms": ["loanword"]
-        },
         "from-old-french": {
             "transforms": [
                 {"letter_remove": {"letter": "l", "position": "last"}},

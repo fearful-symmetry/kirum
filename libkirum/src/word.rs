@@ -39,7 +39,7 @@ pub struct Agglutination {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Edge {
     pub etymon: String,
-    pub transforms: Vec<String>,
+    pub transforms: Option<Vec<String>>,
     pub agglutination_order: Option<i32>
 }
 

@@ -326,7 +326,7 @@ impl LanguageTree {
                             transform_name =  trans_data.names();
                             agg_order = trans_data.agglutination_order;
                         }
-                        etymon_list.push(Edge{etymon: self.graph[etymon].id.clone(), transforms: transform_name, agglutination_order: agg_order});
+                        etymon_list.push(Edge{etymon: self.graph[etymon].id.clone(), transforms: Some(transform_name), agglutination_order: agg_order});
                     }
                     word_vec.push((self.graph[node].clone(), Etymology{etymons: etymon_list}));
             }
