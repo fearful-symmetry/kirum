@@ -33,3 +33,9 @@ jobs:
 
     - name: Bureaucracy
       run: cargo run -- render -d examples/bureaucracy line
+
+    - name: Conditionals Generate
+      run: cargo run -- generate daughter -d examples/conditionals -e examples/conditionals/etymology/example_daughter_transform.json -a "Old Exemplum" -n "Middle Exemplum" -o examples/conditionals/tree/middle.json
+
+    - name: Conditionals render
+      run: cargo run -- render -d examples/conditionals line
