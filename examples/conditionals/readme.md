@@ -5,7 +5,7 @@ Kirum transforms have `conditional` fields that can be used to selectively apply
 To run this example, use the include [transform](etymology/example_daughter_transform.json) to generate a daughter language:
 
 ```
-$ kirum generate daughter -d conditionals -e conditionals/etymology/example_daughter_transform.json -a "Old Exemplum" -n "Middle Exemplum" -o conditionals/tree/middle.j
+$ kirum generate daughter -d conditionals -e conditionals/etymology/example_daughter_transform.json -a "Old Exemplum" -n "Middle Exemplum" -o conditionals/tree/middle.json
 son
 
 [2023-05-28T18:19:01Z INFO  kirum] wrote daughter Middle Exemplum to conditionals/tree/middle.json

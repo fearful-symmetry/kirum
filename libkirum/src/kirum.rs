@@ -7,7 +7,7 @@ use petgraph::dot::{Dot, Config};
 use petgraph::graph::EdgeReference;
 use petgraph::stable_graph::NodeIndex;
 use petgraph::{Graph, visit::EdgeRef};
-use log::trace;
+use log::{trace, debug};
 
 #[derive(Clone, Default, PartialEq, serde::Deserialize, serde::Serialize)]
 /// A Lexis represents a single entry in the language tree, be it a word, word stem, morpheme, etc.
@@ -274,6 +274,7 @@ impl LanguageTree {
     {
         for node in self.graph.node_indices() {
             if apply_to(&self.graph[node]) {
+                debug!("Created daughter word from {}", &self.graph[node].id);
                 let mut applied_transforms: Vec<Transform> = Vec::new();
                 let mut found_updated: Lexis = self.graph[node].clone();
                 for trans in &daughter_transforms {
@@ -289,6 +290,7 @@ impl LanguageTree {
                 
                 let new_node = self.graph.add_node(found_updated);
                 self.graph.add_edge(node, new_node, TreeEtymology { transforms: applied_transforms, ..Default::default() });
+                
             }
         }
     }

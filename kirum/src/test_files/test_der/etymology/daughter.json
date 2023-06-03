@@ -1,0 +1,14 @@
+{
+    "transforms": {
+        "daughter-language-transform": {
+            "transforms": [
+                {
+                    "letter_replace": {
+                        "letter":{"old":"e", "new": "h"},
+                        "replace": "all"
+                    }
+                }
+            ]
+        }
+    }
+}

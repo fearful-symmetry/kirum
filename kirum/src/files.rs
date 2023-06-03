@@ -105,6 +105,24 @@ pub fn read_from_files(transforms:Vec<PathBuf>, graphs:Vec<PathBuf>) -> Result<L
         let graph_raw = std::fs::read_to_string(lang_file.clone()).context(format!("error reading tree file {}", lang_file.display()))?;
         let raw_graph: WordGraph = serde_json::from_str(&graph_raw).context(format!("error reading tree file {}", lang_file.display()))?;
         debug!("read in language file: {}", lang_file.display());
+        // read in derivative words, convert them to "normal" words in the graph
+        for (lex_name, node) in &raw_graph.words{
+            if let Some(derivatives) = &node.derivatives {
+                debug!("Node {} has derivatives, adding", lex_name);
+                for (count, der) in derivatives.iter().enumerate() {
+                    let der_id = format!("{}-autoderive-{}", lex_name, count);
+                    let der_lex_raw = RawLexicalEntry{
+                        etymology: Some(Etymology { 
+                            etymons: vec![Edge{etymon: lex_name.to_string(), 
+                            transforms: der.transforms.clone(),
+                            agglutination_order: None}] }),
+                        ..der.lexis.clone()
+                    };
+                    language_map.insert(der_id, der_lex_raw);
+                }
+            }
+
+        }
         language_map.extend(raw_graph.words);
     }
     
@@ -119,18 +137,18 @@ pub fn read_from_files(transforms:Vec<PathBuf>, graphs:Vec<PathBuf>) -> Result<L
         let node_lex: Lexis = Lexis { id: lex_name.to_string(), ..node.clone().into() };
         add_single_word(&mut tree, &transform_map, &language_map, &node_lex, &node.etymology)?;
         // connect derivatives
-        if let Some(derivatives) = &node.derivatives {
-            debug!("Node {} has derivatives, adding", lex_name);
-            for (count, der) in derivatives.iter().enumerate() {
-                let der_id = format!("{}-autoderive-{}", lex_name, count);
-                let der_lex = Lexis{id: der_id, ..der.lexis.clone().into()};
-                let der_transforms: Vec<Transform> = match &der.transforms{
-                    Some(t) => {find_transforms(t, &transform_map)?},
-                    None => Vec::new(),
-                };
-                tree.connect_etymology(der_lex, node_lex.clone(), der_transforms, None);
-            }
-        };
+        // if let Some(derivatives) = &node.derivatives {
+        //     debug!("Node {} has derivatives, adding", lex_name);
+        //     for (count, der) in derivatives.iter().enumerate() {
+        //         let der_id = format!("{}-autoderive-{}", lex_name, count);
+        //         let der_lex = Lexis{id: der_id, ..der.lexis.clone().into()};
+        //         let der_transforms: Vec<Transform> = match &der.transforms{
+        //             Some(t) => {find_transforms(t, &transform_map)?},
+        //             None => Vec::new(),
+        //         };
+        //         tree.connect_etymology(der_lex, node_lex.clone(), der_transforms, None);
+        //     }
+        // };
         
        
     }
@@ -163,6 +181,7 @@ fn add_single_word(tree: &mut LanguageTree, trans_map: &HashMap<String, RawTrans
     Ok(())
 }
 
+/// Searches the Hashmap for the transform objects specified in trans_tree, or return defaults
 pub fn find_transforms(raw: &Vec<String>, trans_tree: &HashMap<String, RawTransform>) -> Result<Vec<Transform>> {
     let mut word_transforms: Vec<Transform> = Vec::new();
     for trans in raw{
@@ -211,4 +230,26 @@ fn check_path(dir: &DirEntry) -> bool {
         dir.path().extension().unwrap_or_default() == "json"
     }
     
+}
+
+
+#[cfg(test)]
+mod tests {
+    use crate::read_and_compute;
+    use anyhow::Result;
+    use env_logger::Builder;
+    use log::LevelFilter;
+
+    #[test]
+    fn test_ingest_with_derivatives() -> Result<()> {
+        Builder::new().filter_level(LevelFilter::Debug).init();
+        let directory = Some(String::from("src/test_files/test_der"));
+        let computed = read_and_compute(None, None, directory)?;
+        let rendered_dict = computed.to_vec();
+
+        assert_eq!(4, rendered_dict.len());
+        Ok(())
+    }
+
+
 }
