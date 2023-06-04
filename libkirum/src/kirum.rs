@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use crate::transforms::Transform;
 use crate::word::{Word, PartOfSpeech, Etymology, Edge};
-use petgraph::Direction::Incoming;
+use petgraph::Direction::{Incoming, Outgoing};
 use petgraph::dot::{Dot, Config};
 use petgraph::graph::EdgeReference;
 use petgraph::stable_graph::NodeIndex;
@@ -207,7 +207,7 @@ impl LanguageTree {
                 
                 if !updated.contains_key(&node){
                     let mut etymons_in_lex = 0;
-                    for edge in self.graph.clone().edges_directed(node, petgraph::Direction::Incoming){
+                    for edge in self.graph.edges_directed(node, petgraph::Direction::Incoming){
                         etymons_in_lex += 1;
                         if edge.weight().intermediate_word.is_none(){
                             // word still has unpopulated edges, give up
@@ -239,22 +239,18 @@ impl LanguageTree {
 
                 // if a word is updated, "trickle down" to outgoing edges
                 if updated.contains_key(&node){
-                    for edge in self.graph.clone().edges_directed(node, petgraph::Direction::Outgoing){
-                        // do we need this check?
-                        if edge.weight().intermediate_word.is_some(){
+                    let mut edges = self.graph.neighbors_directed(node, Outgoing).detach();
+                    while let Some(edge) = edges.next_edge(&self.graph) {
+                         // do we need this check?
+                        if self.graph[edge].intermediate_word.is_some(){
                             continue
                         }
-                        //we have an unfilled edge, generate stem
-                        let mut existing = edge.weight().clone();
-                        let transformed = existing.apply_transforms(&self.graph[node]);
+                        let transformed = self.graph[edge].apply_transforms(&self.graph[node]);
                         trace!("updated edge with word {:?}", transformed.word);
-                        existing.intermediate_word = transformed.word;
+                        self.graph[edge].intermediate_word = transformed.word;
                         changes+=1;
-    
-                        let node_target = edge.target();
-                        self.graph.update_edge(node, node_target, existing);
-                       
                     }
+
                 }
             }
 
