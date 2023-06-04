@@ -1,0 +1,35 @@
+{
+  "transforms": {
+    "of-from-latin": {
+      "transforms": [
+        {
+          "match_replace": {
+            "old": "exe",
+            "new": "esse"
+          }
+        },
+        {
+          "match_replace": {
+            "old": "um",
+            "new": "e"
+          }
+        }
+      ]
+    },
+    "latin-from-verb": {
+      "transforms": [
+        {
+          "match_replace": {
+            "old": "ere",
+            "new": "plum"
+          }
+        },
+        {
+          "prefix": {
+            "value": "ex"
+          }
+        }
+      ]
+    }
+  }
+}

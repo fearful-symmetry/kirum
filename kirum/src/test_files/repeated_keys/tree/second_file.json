@@ -1,0 +1,12 @@
+{
+    "words": {
+        "latin_example": {
+            "word": "emere",
+            "type": "word",
+            "language": "Latin",
+            "definition": "To buy, remove",
+            "part_of_speech": "verb",
+            "archaic": true
+          }
+    }
+}

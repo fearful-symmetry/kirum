@@ -123,7 +123,12 @@ pub fn read_from_files(transforms:Vec<PathBuf>, graphs:Vec<PathBuf>) -> Result<L
             }
 
         }
-        language_map.extend(raw_graph.words);
+        for (key, lex) in raw_graph.words {
+            let found = language_map.insert(key.clone(), lex);
+            if found.is_some() {
+                return Err(anyhow!("Error: Key '{}' found multiple times", key));
+            }
+        }
     }
     
     if language_map.is_empty(){
@@ -237,12 +242,9 @@ fn check_path(dir: &DirEntry) -> bool {
 mod tests {
     use crate::read_and_compute;
     use anyhow::Result;
-    use env_logger::Builder;
-    use log::LevelFilter;
 
     #[test]
     fn test_ingest_with_derivatives() -> Result<()> {
-        Builder::new().filter_level(LevelFilter::Debug).init();
         let directory = Some(String::from("src/test_files/test_der"));
         let computed = read_and_compute(None, None, directory)?;
         let rendered_dict = computed.to_vec();
@@ -251,5 +253,12 @@ mod tests {
         Ok(())
     }
 
+    #[test]
+    fn test_repeated_keys()  {
+        let directory = Some(String::from("src/test_files/repeated_keys"));
+        let res = read_and_compute(None, None, directory);
 
+        assert_eq!(true, res.is_err());
+
+    }
 }
