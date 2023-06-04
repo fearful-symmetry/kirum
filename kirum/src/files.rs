@@ -259,6 +259,5 @@ mod tests {
         let res = read_and_compute(None, None, directory);
 
         assert_eq!(true, res.is_err());
-
     }
 }
