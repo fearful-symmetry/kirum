@@ -6,7 +6,7 @@ use petgraph::Direction::{Incoming, Outgoing};
 use petgraph::dot::{Dot, Config};
 use petgraph::graph::EdgeReference;
 use petgraph::stable_graph::NodeIndex;
-use petgraph::{Graph, visit::EdgeRef};
+use petgraph::Graph;
 use log::{trace, debug};
 
 #[derive(Clone, Default, PartialEq, serde::Deserialize, serde::Serialize)]
