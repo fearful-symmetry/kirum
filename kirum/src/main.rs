@@ -6,7 +6,8 @@ use clap::Parser;
 use anyhow::{Result, Context, anyhow};
 use files::create_new_project;
 use libkirum::{kirum::{Lexis, LanguageTree}, transforms::{Transform}};
-use std::{fs::File, io::Write, path::PathBuf};
+use tabled::{Table, Tabled, settings::{ Disable, object::FirstRow, panel::Header}};
+use std::{fs::File, io::Write, path::PathBuf, collections::HashMap};
 //use csv::WriterBuilder;
 use env_logger::{Builder};
 use log::LevelFilter;
@@ -35,6 +36,41 @@ fn main() -> Result<()> {
             let computed = read_and_compute(transforms, graph, directory)?;
             computed.graphviz()
         },
+        cli::Commands::Stat { directory } => {
+            let computed = read_and_compute(None, None, directory)?;
+
+            #[derive(Default, Tabled)]
+            struct Stats {
+                nouns: i64,
+                verbs: i64,
+                adjectives: i64,
+                total: usize
+            }
+            let mut languages: HashMap<String, i64> = HashMap::new();
+            let mut stats = Stats::default();
+            stats.total = computed.len();
+            for lex in computed.into_iter() {
+                if let Some(pos) = lex.pos {
+                    match pos {
+                        libkirum::word::PartOfSpeech::Adjective => stats.adjectives+=1,
+                        libkirum::word::PartOfSpeech::Verb => stats.verbs+=1,
+                        libkirum::word::PartOfSpeech::Noun => stats.nouns+=1
+                    }
+                }
+                let new_lang_count = languages.get(&lex.language).unwrap_or(&0)+1;
+                languages.insert(lex.language, new_lang_count);
+            }
+
+            if let Some(none_set) =  languages.remove("") {
+                languages.insert("None Set".into(), none_set);
+            }
+
+            let stats_vec = vec![stats];
+            let stat_str = Table::new(stats_vec).to_string();
+            let lang_str = Table::new(languages)
+            .with(Disable::row(FirstRow)).with(Header::new("Languages")).to_string();
+            format!("\n{}\n{}\n", stat_str, lang_str)
+        }
         cli::Commands::Render{command, transforms, graph, directory} =>{
             let computed = read_and_compute(transforms, graph, directory)?;
             let rendered_dict = computed.to_vec();

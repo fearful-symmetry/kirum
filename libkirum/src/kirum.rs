@@ -98,6 +98,19 @@ impl Default for LanguageTree{
     }
 }
 
+impl IntoIterator for LanguageTree {
+    type Item = Lexis;
+    type IntoIter = std::vec::IntoIter<Self::Item>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        let mut lexii: Vec<Lexis> = Vec::new();
+        for node in self.graph.node_indices() {
+            lexii.push(self.graph[node].clone());
+        }
+        lexii.into_iter()
+    }
+}
+
 
 impl LanguageTree {
     pub fn new() -> Self {
@@ -118,6 +131,10 @@ impl LanguageTree {
         }
 
         false
+    }
+
+    pub fn len(&self) -> usize {
+        self.graph.node_count()
     }
 
     /// A quick and ugly helper that returns a graphviz.dot render of the graph. Useful for debugging.

@@ -22,6 +22,12 @@ pub enum Commands{
     New{
         name: String
     },
+    /// Print basic statistics on the language
+    Stat {
+        /// path to a directory to read in all transform and graph files
+        #[clap(short, long, value_parser)]
+        directory: Option<String>,
+    },
     /// Print a graphviz representation of the language
     Graphviz{
         /// JSON file of defined etymon transforms
