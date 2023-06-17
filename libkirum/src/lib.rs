@@ -4,6 +4,7 @@ pub mod transforms;
 pub mod errors;
 pub mod kirum;
 pub mod matching;
+pub mod lemma;
 
 // #[cfg(test)]
 // mod tests {

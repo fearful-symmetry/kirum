@@ -1,93 +1,11 @@
-use std::{path::{PathBuf, Path}, fs::{self, File}, io::Write, collections::HashMap};
+use std::{path::{PathBuf, Path},  collections::HashMap};
 use anyhow::{Result, Context, anyhow};
 use libkirum::{kirum::{LanguageTree, Lexis}, transforms::{Transform, TransformFunc}, word::{Etymology, Edge}};
 use walkdir::{WalkDir, DirEntry};
-use crate::entries::{RawTransform, RawLexicalEntry, TransformGraph, WordGraph, Derivative};
+use crate::entries::{RawTransform, RawLexicalEntry, TransformGraph, WordGraph};
 
 
-pub fn create_new_project(name: &str) -> Result<()> {
-    let base = PathBuf::from(name);
-    let mut ety_path = base.join("etymology");
-    let mut tree_path = base.join("tree");
-    fs::create_dir_all(&ety_path)?;
-    fs::create_dir_all(&tree_path)?;
-
-    let mut transform_map: HashMap<String, RawTransform> = HashMap::new();
-    transform_map.insert("of-from-latin".into(), RawTransform { 
-        transforms: vec![TransformFunc::MatchReplace { old: "exe".into(), new: "esse".into() },
-        TransformFunc::MatchReplace { old: "um".into(), new: "e".into() }
-        ], 
-        conditional: None 
-        }
-    );
-    transform_map.insert("latin-from-verb".into(), RawTransform { 
-        transforms: vec![TransformFunc::MatchReplace { old: "ere".into(), new: "plum".into() },
-        TransformFunc::Prefix { value: "ex".into() }
-        ],
-        conditional: None 
-        }
-    );
-    let example_transforms = TransformGraph{transforms: transform_map};
-
-    let mut word_map: HashMap<String, RawLexicalEntry> = HashMap::new();
-    word_map.insert("latin_verb".into(), RawLexicalEntry { 
-        word: Some("emere".into()), 
-        word_type: Some("word".into()), 
-        language: Some("Latin".into()), 
-        definition: "To buy, remove".into(), 
-        part_of_speech: Some(libkirum::word::PartOfSpeech::Verb), 
-        etymology: None, 
-        archaic: true, 
-        tags: None, 
-        derivatives: None, 
-    });
-    word_map.insert("latin_example".into(), RawLexicalEntry { 
-        word: None, 
-        word_type: Some("word".into()), 
-        language: Some("Latin".into()), 
-        definition: "an instance, model, example".into(), 
-        part_of_speech: Some(libkirum::word::PartOfSpeech::Noun), 
-        etymology: Some(Etymology { etymons: vec![Edge{etymon: "latin_verb".into(), transforms: Some(vec!["latin-from-verb".into()]), agglutination_order: None}] }), 
-        archaic: true, 
-        tags: Some(vec!["example".into(), "default".into()]), 
-        derivatives: Some(vec![Derivative{lexis: RawLexicalEntry { 
-                word: None, 
-                word_type: None, 
-                language: Some("Old French".into()), 
-                definition: "model, example".into(), 
-                part_of_speech: Some(libkirum::word::PartOfSpeech::Noun), 
-                etymology: None, 
-                archaic: true, 
-                tags: None, 
-                derivatives: None
-            },
-            transforms: Some(vec!["of-from-latin".to_owned()]),
-    }]) 
-    });
-
-    let example_tree = WordGraph{
-        words: word_map
-    };
-
-    let graph_data = serde_json::to_string_pretty(&example_tree)?;
-    let trans_data = serde_json::to_string_pretty(&example_transforms)?;
-
-    tree_path.push(name);
-    tree_path.set_extension("json");
-    let mut tree_file = File::create(tree_path)?;
-    write!(tree_file, "{}", graph_data)?;
-
-    ety_path.push("ety");
-    ety_path.set_extension("json");
-    let mut ety_file = File::create(ety_path)?;
-    write!(ety_file, "{}", trans_data)?;
-
-    Ok(())
-}
-
-
-
-
+/// read a list of tree and transform files, return the raw Language Tree Object
 pub fn read_from_files(transforms:Vec<PathBuf>, graphs:Vec<PathBuf>) -> Result<LanguageTree>{
     //first merge all the files into one giant hashmap for the transforms and graph
     // because we later need to get random words from the map to construct the etymology from the rawLex "etymology" fields,
@@ -140,27 +58,13 @@ pub fn read_from_files(transforms:Vec<PathBuf>, graphs:Vec<PathBuf>) -> Result<L
     for (lex_name, node) in &language_map{
         debug!("creating node entry {}", lex_name);
         let node_lex: Lexis = Lexis { id: lex_name.to_string(), ..node.clone().into() };
-        add_single_word(&mut tree, &transform_map, &language_map, &node_lex, &node.etymology)?;
-        // connect derivatives
-        // if let Some(derivatives) = &node.derivatives {
-        //     debug!("Node {} has derivatives, adding", lex_name);
-        //     for (count, der) in derivatives.iter().enumerate() {
-        //         let der_id = format!("{}-autoderive-{}", lex_name, count);
-        //         let der_lex = Lexis{id: der_id, ..der.lexis.clone().into()};
-        //         let der_transforms: Vec<Transform> = match &der.transforms{
-        //             Some(t) => {find_transforms(t, &transform_map)?},
-        //             None => Vec::new(),
-        //         };
-        //         tree.connect_etymology(der_lex, node_lex.clone(), der_transforms, None);
-        //     }
-        // };
-        
-       
+        add_single_word(&mut tree, &transform_map, &language_map, &node_lex, &node.etymology)?; 
     }
 
     Ok(tree)
 }
 
+/// Add a single word entry to the tree, including any derivative words
 fn add_single_word(tree: &mut LanguageTree, trans_map: &HashMap<String, RawTransform>, 
     lex_map: &HashMap<String, RawLexicalEntry>, node_lex: &Lexis, lex_ety: &Option<Etymology>) -> Result<()> {
         if let Some(etymon) = lex_ety{
@@ -198,6 +102,7 @@ pub fn find_transforms(raw: &Vec<String>, trans_tree: &HashMap<String, RawTransf
     Ok(word_transforms)
 }
 
+/// Traverse a directory, returning a list of transforms and graph files
 pub fn handle_directory(path: String) -> Result<(Vec<PathBuf>, Vec<PathBuf>)> {
     let lang_dir = Path::new(&path);
     let lang_graph_dir = lang_dir.join("tree");
@@ -227,6 +132,7 @@ pub fn handle_directory(path: String) -> Result<(Vec<PathBuf>, Vec<PathBuf>)> {
     Ok((transforms, graphs))
 }
 
+/// check if the path is a valid file we want to read
 fn check_path(dir: &DirEntry) -> bool {
     debug!("checking path: {:?}", dir);
     if dir.file_type().is_dir(){
@@ -237,11 +143,31 @@ fn check_path(dir: &DirEntry) -> bool {
     
 }
 
+/// read in the existing files and generate a graph
+/// deals with the logic of listed files versus a specified directory
+pub fn read_and_compute(transforms: Option<String>, graph: Option<String>, directory: Option<String>) -> Result<LanguageTree>{
+    let (transform_files, graph_files): (Vec<PathBuf>, Vec<PathBuf>) = if transforms.is_some() && graph.is_some(){
+        (vec![transforms.unwrap().into()], vec![graph.unwrap().into()])
+    } else if directory.is_some(){
+        handle_directory(directory.unwrap())?
+    } else {
+        return Err(anyhow!("must specify either a graph and transform file, or a directory"));
+    }; 
+    info!("Reading in existing language files...");
+    let mut lang_tree = read_from_files(transform_files, graph_files)?;
+    info!("rendering tree...");
+    lang_tree.compute_lexicon();
+    Ok(lang_tree)
+}
+
+
+
 
 #[cfg(test)]
 mod tests {
-    use crate::read_and_compute;
     use anyhow::Result;
+
+    use crate::files::read_and_compute;
 
     #[test]
     fn test_ingest_with_derivatives() -> Result<()> {

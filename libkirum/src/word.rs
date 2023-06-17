@@ -4,6 +4,7 @@ use crate::{transforms, transforms::{LetterArrayValues, LetterPlaceType}};
 use serde_with::skip_serializing_none;
 use log::error;
 
+/// The possible Part Of Speech values for a Lexis
 #[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq)]
 pub enum PartOfSpeech {
     #[serde(rename(deserialize= "noun", serialize="noun"))]
@@ -25,16 +26,13 @@ impl std::string::ToString for PartOfSpeech{
     }
 }
 
+/// The etymology of a given lexis.
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Etymology{
     pub etymons: Vec<Edge>,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct Agglutination {
-    order: Vec<String>
-}
-
+/// The edge of the tree graph, containing a reference to the upstream word, and other metadata.
 #[skip_serializing_none]
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Edge {
@@ -43,6 +41,10 @@ pub struct Edge {
     pub agglutination_order: Option<i32>
 }
 
+/// The ultimate value of a lexis.
+/// This is an enum in order to minimize issues where unicode and a conlang might disagree
+/// on what a 'letter' is. For example, a string of "hʷrš" has four letters, but a vector of 
+/// [hʷ, r, š] has three letters.
 #[derive(Deserialize, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 #[serde(untagged)]
 pub enum Word {
@@ -125,6 +127,7 @@ impl std::string::ToString for Word{
 }
 
 impl Word{
+    /// turn the word into a vector of characters.
     pub fn chars(self) -> Vec<String> {
         match self{
             Word::Letters(letters) => letters,
@@ -134,7 +137,7 @@ impl Word{
         }
     }
 
-    pub fn remove_char(self, char: &str, remove_type: &LetterPlaceType) ->Word{
+    pub fn remove_char(self, char: &str, remove_type: &LetterPlaceType) -> Word{
         let mut char_arr = match self{
             Word::Letters(letters) => letters,
             Word::String(_) => self.chars()

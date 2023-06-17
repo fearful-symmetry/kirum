@@ -3,12 +3,14 @@ mod cli;
 mod files;
 mod tmpl;
 mod stat;
+mod new;
 use clap::Parser;
-use anyhow::{Result, Context, anyhow};
-use files::create_new_project;
-use libkirum::{kirum::{Lexis, LanguageTree}, transforms::{Transform}};
+use files::read_and_compute;
+use new::create_new_project;
+use anyhow::{Result, Context};
+use libkirum::{kirum::{Lexis}, transforms::{Transform}};
 use stat::gen_stats;
-use std::{fs::File, io::Write, path::PathBuf};
+use std::{fs::File, io::Write};
 //use csv::WriterBuilder;
 use env_logger::{Builder};
 use log::LevelFilter;
@@ -52,6 +54,7 @@ fn main() -> Result<()> {
                     }
                     acc
                 },
+                // CSV is disabled because of serializing issues
                 // cli::Format::Csv =>{
                 //     let mut wrt = WriterBuilder::new().has_headers(true).from_writer(vec![]);
                 //     for word in rendered_dict {
@@ -117,21 +120,4 @@ fn main() -> Result<()> {
 }
 
 
-
-// read in the existing files and generate a graph
-// deals with the logic of listed files versus a specified directory
-fn read_and_compute(transforms: Option<String>, graph: Option<String>, directory: Option<String>) -> Result<LanguageTree>{
-    let (transform_files, graph_files): (Vec<PathBuf>, Vec<PathBuf>) = if transforms.is_some() && graph.is_some(){
-        (vec![transforms.unwrap().into()], vec![graph.unwrap().into()])
-    } else if directory.is_some(){
-        files::handle_directory(directory.unwrap())?
-    } else {
-        return Err(anyhow!("must specify either a graph and transform file, or a directory"));
-    }; 
-    info!("Reading in existing language files...");
-    let mut lang_tree = files::read_from_files(transform_files, graph_files)?;
-    info!("rendering tree...");
-    lang_tree.compute_lexicon();
-    Ok(lang_tree)
-}
 

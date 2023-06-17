@@ -68,7 +68,7 @@ pub struct TreeEtymology {
 }
 
 impl TreeEtymology{
-    // a helper function to apply the given lexis to all transforms in the graph edge
+    /// a helper function to apply the given lexis to all transforms in the graph edge
     fn apply_transforms(&self, etymon: &Lexis) -> Lexis {
 
         let mut transformed = etymon.clone();
@@ -79,7 +79,7 @@ impl TreeEtymology{
         transformed
     }
 
-    // A helper function that returns a vector of all names transforms in the graph edges
+    /// A helper function that returns a vector of all names transforms in the graph edges
     pub fn names(&self) -> Vec<String>{
        self.transforms.clone().into_iter().map(|t| t.name).collect()
     }
@@ -193,7 +193,7 @@ impl LanguageTree {
         }
     }
     /// Fill out the graph, walking the structure until all possible lexii have been generated or updated.
-    /// This method is idempotent, and can be run any time to calculate unpopulated out incorrect lexii in the language tree.
+    /// This method is idempotent, and can be run any time to calculate unpopulated or incorrect lexii in the language tree.
     pub fn compute_lexicon(&mut self) {
         let mut incomplete = true;
         let mut updated: HashMap<NodeIndex, bool> = HashMap::new();

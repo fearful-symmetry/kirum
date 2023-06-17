@@ -35,6 +35,73 @@ The [`examples`](examples) directory has a number of projects:
 - [conditionals](examples/conditionals/) - Using conditional statements in transforms.
 
 
-## The structure of `tree` and `etymology` files
+## The structure of a Kirum project
 
-`kirum` generates languages from two files: A tree file, which contains a lexicon of words, stems, roots, etc, and an etymology file, which contains data on the transforms between words. The transform files can also contain conditional statements that determine if a transform should be applied to a word.
+`kirum` generates languages from two files, contained in separate `tree` and `etymology` directories: Tree files contain a lexicon of words, stems, roots, etc, and etymology files contain data on the transforms between words. The transform files can also contain conditional statements that determine if a transform should be applied to a word.
+
+### Lexis objects
+
+A Tree file is a JSON object of `Lexis` objects, a maximal example of which is presented below:
+
+```json
+    "latin_example": {
+      "type": "word", // A user-supplied tag. Can be any value.
+      "word": "exemplum", // The actual lexical word. If not supplied, kirum will attempt to derive it based on etymology
+      "language": "Latin", // Can be any user-supplied value
+      "definition": "an instance, model, example",
+      "part_of_speech": "noun", // Optional. Must be one of Noun, verb, or adjective.
+      "etymology": {
+        "etymons": [
+          {
+            "etymon": "latin_verb", // The key name of another lexis in the Kirum project
+            "transforms": [
+              "latin-from-verb" // the key name of a transform
+            ]
+          }
+        ]
+      },
+      "archaic": true, //optional. Used only for sorting and filtering.
+      "tags": [ // optional, user-supplied tags.
+        "example",
+        "default"
+      ],
+      "derivatives": [ // The optional derivatives field works as syntactic sugar, allowing users to specify derivative words within the object of the etymon, as opposed to as a separate JSON object.
+        {
+          "lexis": { // Identical to the `lexis` structure of the parent lexis.
+            "language": "Old French",
+            "definition": "model, example",
+            "part_of_speech": "noun",
+            "archaic": true
+          },
+          "transforms": [
+            "of-from-latin"
+          ]
+        }
+      ]
+    },
+```
+
+### Transform objects
+
+A transform object specifies the relationship between words. Transform files are a JSON object of `Transform` objects, an example of which is below:
+```json
+        "vowel-o-change":{
+            "transforms":[ // a list of individual transform functions. See below for available transforms
+                {
+                    "letter_replace":{
+                        "letter": {"old": "e", "new":"ai"},
+                        "replace": "all"
+                    }
+                }
+            ],
+            "conditional":{// Optional. The transform will only be applied if the conditional evaluates to true
+                "pos": { // will match against the `part_of_speech` field of the Lexis object
+                    "match":{
+                        "equals": "noun" // The `part_of_speech` field must be equal to `noun`. 
+                    }
+                }
+            }
+        }
+```
+
+A complete list of available transform types can be found in the [transforms.rs file](libkirum/src/transforms.rs).
