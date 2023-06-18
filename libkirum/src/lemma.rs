@@ -1,4 +1,4 @@
-use serde::Serialize;
+use serde::{Serialize, Deserialize, de::Visitor};
 use unicode_segmentation::UnicodeSegmentation;
 use crate::transforms::{LetterPlaceType, LetterArrayValues};
 use regex::Regex;
@@ -6,17 +6,11 @@ use log::error;
 
 const WORD_SEP: char = '\u{200B}';
 
-#[derive(Clone)]
+#[derive(Clone, Debug, Default, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Lemma {
     value: String,
 }
 
-impl Default for Lemma {
-    fn default() -> Self {
-        Lemma { 
-            value: String::new()}
-    }
-}
 
 impl Serialize for Lemma {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
@@ -24,6 +18,43 @@ impl Serialize for Lemma {
             S: serde::Serializer {
         serializer.serialize_str(&self.string_without_sep())
     }
+}
+
+impl<'de> Deserialize<'de> for Lemma {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+        where
+            D: serde::Deserializer<'de> {
+        deserializer.deserialize_any(LemmaVisitor)
+    }
+}
+
+struct LemmaVisitor;
+
+impl<'de> Visitor<'de> for LemmaVisitor {
+    type Value = Lemma;
+
+    fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(formatter, "a string or array of strings")
+    }
+
+    fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
+        where
+            E: serde::de::Error, {
+        let lem: Lemma = v.to_owned().into();
+        Ok(lem)
+    }
+
+    fn visit_seq<A>(self, mut seq:  A) -> Result<Self::Value, A::Error>
+        where
+            A: serde::de::SeqAccess<'de>, {
+                let mut acc: Vec<String> = Vec::new();
+                while let Some(value) = seq.next_element()? {
+                    acc.push(value);
+                };
+                let parsed: Lemma = acc.into();
+                Ok(parsed)
+    }
+
 }
 
 impl IntoIterator for Lemma {
@@ -109,12 +140,12 @@ impl Lemma {
     }
 
     /// Adds the prefix to the given Lemma
-    pub fn add_prefix(&mut self, prefix: Lemma) {
+    pub fn add_prefix(&mut self, prefix: &Lemma) {
         self.value = format!("{}{}", prefix.value, self.value)
     }
 
     /// Adds the postfix to the given Lemma
-    pub fn add_postfix(&mut self, postfix: Lemma) {
+    pub fn add_postfix(&mut self, postfix: &Lemma) {
         self.value = format!("{}{}", self.value, postfix.value)
     }
 
@@ -184,7 +215,7 @@ impl Lemma {
     /// match_replace replaces the target substring with the given new string.
     /// It assumes that all strings are in proper "lemmatized" type, as
     /// the underlying regex call with fail if one substring is using different unicode delimiters.
-    pub fn match_replace(&mut self, old: Lemma, new: Lemma) {
+    pub fn match_replace(&mut self, old: &Lemma, new: &Lemma) {
         let re = match Regex::new(&old.value) {
             Ok(m) => m,
             Err(err) => {
@@ -193,7 +224,7 @@ impl Lemma {
             }
         };
         //let word_string = self.to_string();
-        let updated = re.replace(&self.value, new.value);
+        let updated = re.replace(&self.value, new.value.clone());
         self.value = updated.into_owned();
         self.dedouble_sep();
     }
@@ -378,7 +409,7 @@ mod tests {
     #[test]
     fn test_match_replace() {
         let mut string_word: Lemma = String::from("kirum").into();
-        string_word.match_replace("rum".into(), "teh".into());
+        string_word.match_replace(&"rum".into(), &"teh".into());
 
         assert_eq!(string_word.string_without_sep(), String::from("kiteh"));
     }

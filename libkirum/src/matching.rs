@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 use crate::kirum::Lexis;
-use crate::word::{Word, PartOfSpeech};
+use crate::lemma::Lemma;
+use crate::word::PartOfSpeech;
 
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
@@ -65,12 +66,19 @@ impl PartialEq<String> for ValueMatch{
 
 }
 
-impl PartialEq<Word> for ValueMatch{
-    fn eq(&self, other: &Word) -> bool {
-        match other {
-            Word::Letters(l) => {*self == *l},
-            Word::String(s) => {*self == *s}
-        }
+// impl PartialEq<Word> for ValueMatch{
+//     fn eq(&self, other: &Word) -> bool {
+//         match other {
+//             Word::Letters(l) => {*self == *l},
+//             Word::String(s) => {*self == *s}
+//         }
+//     }
+// }
+
+
+impl PartialEq<Lemma> for ValueMatch{
+    fn eq(&self, other: &Lemma) -> bool {
+        *self == other.string_without_sep()
     }
 }
 

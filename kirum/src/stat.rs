@@ -14,8 +14,7 @@ struct Stats {
 pub fn gen_stats(tree: LanguageTree) -> String {
     let mut languages: HashMap<String, i64> = HashMap::new();
     let mut types: HashMap<String, i64> = HashMap::new();
-    let mut stats = Stats::default();
-    stats.total = tree.len();
+    let mut stats = Stats{total: tree.len(), ..Stats::default()};
     for lex in tree.into_iter() {
         if let Some(pos) = lex.pos {
             match pos {
