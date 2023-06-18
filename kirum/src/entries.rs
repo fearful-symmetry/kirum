@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use libkirum::{word::{Word, PartOfSpeech, Etymology}, kirum::Lexis, transforms::{TransformFunc, Transform}, matching::LexisMatch};
+use libkirum::{word::{PartOfSpeech, Etymology}, kirum::Lexis, transforms::{TransformFunc, Transform}, matching::LexisMatch, lemma::Lemma};
 use serde::{Serialize, Deserialize};
 use serde_with::skip_serializing_none;
 
@@ -26,7 +26,7 @@ pub struct TransformGraph {
 #[skip_serializing_none]
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct RawLexicalEntry {
-    pub word: Option<Word>,
+    pub word: Option<Lemma>,
     #[serde(rename = "type", alias="lexis_type")]
     pub word_type: Option<String>,
     pub language: Option<String>,

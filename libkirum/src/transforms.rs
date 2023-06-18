@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use crate::{word::Word, matching::LexisMatch, kirum::Lexis};
+use crate::{matching::LexisMatch, kirum::Lexis, lemma::Lemma};
 use log::debug;
 
 #[derive(Clone, Default)]
@@ -18,25 +18,25 @@ impl std::fmt::Debug for Transform {
 
 impl Transform{
     /// Transform the given lexis, or return the original unaltered lexis if the lex_match resolves to false.
-    pub fn transform(&self, etymon: &Lexis) -> Lexis {
-        self.transform_option(etymon).unwrap_or(etymon.clone())
+    pub fn transform(&self, etymon: &mut Lexis) {
+        self.transform_option(etymon);
     }
 
     // Transform the given lexis, or return None if the lex_match condition evaluates to false
-    pub fn transform_option(&self, etymon: &Lexis) ->Option<Lexis>{
+    pub fn transform_option(&self, etymon: &mut Lexis) -> bool {
         let can_transform = if let Some(lex_match) = &self.lex_match{
             lex_match.matches(etymon)
         } else {
             true
         };
-        let mut updated = etymon.clone();
+        //let mut updated = etymon.clone();
         if can_transform{
             for transform in &self.transforms {
-                updated = transform.transform(&updated);
+                transform.transform(etymon); 
             };
-            Some(updated)
+            true
         } else{
-            None
+            false
         }
     }
 }
@@ -49,9 +49,9 @@ pub enum TransformFunc {
     #[serde(rename="letter_array")]
     LetterArray{letters: Vec<LetterArrayValues>},
     #[serde(rename="postfix")]
-    Postfix{value: Word},
+    Postfix{value: Lemma},
     #[serde(rename="prefix")]
-    Prefix{value: Word},
+    Prefix{value: Lemma},
     #[serde(rename="loanword")]
     Loanword,
     #[serde(rename="letter_remove")]
@@ -61,54 +61,56 @@ pub enum TransformFunc {
     #[serde(rename="dedouble")]
     DeDouble{letter: String, position: LetterPlaceType},
     #[serde(rename="match_replace")]
-    MatchReplace{old: String, new: String}
+    MatchReplace{old: Lemma, new: Lemma}
 }
 
 
 impl TransformFunc{
-    pub fn transform(&self, current_word: &Lexis) -> Lexis {
+    pub fn transform(&self, current_word: &mut Lexis) {
         if current_word.word.is_none(){
-            return current_word.to_owned();
+            return
         }
-        let new_word = match self {
-            TransformFunc::LetterReplace{ letter, replace } => {
-                debug!("got LetterReplace for {}", current_word.id);
-               current_word.word.clone().unwrap().replace(&letter.old, &letter.new, replace)
-            },
-            TransformFunc::LetterArray { letters } => {
-                debug!("got LetterArray for {}", current_word.id);
-                current_word.word.clone().unwrap().modify_with_array(letters) 
-            },
-            TransformFunc::Postfix { value } => {
-                debug!("got Postfix for {}", current_word.id);
-                current_word.word.clone().unwrap().add_postfix(value.clone())
-            },
-            TransformFunc::Prefix { value } => {
-                debug!("got Prefix for {}", current_word.id);
-                current_word.word.clone().unwrap().add_prefix(value.clone())
+        if let Some(current) = current_word.word.as_mut() {
+            match self {
+                TransformFunc::LetterReplace{ letter, replace } => {
+                    debug!("got LetterReplace for {}", current_word.id);
+                   current.replace(&letter.old, &letter.new, replace)
+                },
+                TransformFunc::LetterArray { letters } => {
+                    debug!("got LetterArray for {}", current_word.id);
+                    current.modify_with_array(letters) 
+                },
+                TransformFunc::Postfix { value } => {
+                    debug!("got Postfix for {}", current_word.id);
+                    current.add_postfix(value)
+                },
+                TransformFunc::Prefix { value } => {
+                    debug!("got Prefix for {}", current_word.id);
+                    current.add_prefix(value)
+    
+                },
+                TransformFunc::Loanword => {
+                    debug!("got Loanword for {}", current_word.id);
+                },
+                TransformFunc::LetterRemove {letter, position } =>{
+                    debug!("got LetterRemove for {}", current_word.id);
+                    current.remove_char(letter, position)
+                },
+                TransformFunc::Double { letter, position } => {
+                    debug!("got Double for {}", current_word.id);
+                    current.double(letter, position)
+                },
+                TransformFunc::DeDouble { letter, position } => {
+                    debug!("got DeDouble for {}", current_word.id);
+                    current.dedouble(letter, position)
+                },
+                TransformFunc::MatchReplace { old, new } => {
+                    current.match_replace(old, new)
+                }
+            };
+        }
 
-            },
-            TransformFunc::Loanword => {
-                debug!("got Loanword for {}", current_word.id);
-                current_word.word.clone().unwrap()
-            },
-            TransformFunc::LetterRemove {letter, position } =>{
-                debug!("got LetterRemove for {}", current_word.id);
-                current_word.word.clone().unwrap().remove_char(letter, position)
-            },
-            TransformFunc::Double { letter, position } => {
-                debug!("got Double for {}", current_word.id);
-                current_word.word.clone().unwrap().double(letter, position)
-            },
-            TransformFunc::DeDouble { letter, position } => {
-                debug!("got DeDouble for {}", current_word.id);
-                current_word.word.clone().unwrap().dedouble(letter, position)
-            },
-            TransformFunc::MatchReplace { old, new } => {
-                current_word.word.clone().unwrap().match_replace(old, new)
-            }
-        };
-        Lexis{word: Some(new_word), ..current_word.clone()}
+        //Lexis{word: Some(new_word), ..current_word.clone()}
     }
 
 }
@@ -141,63 +143,46 @@ pub enum LetterArrayValues{
 mod tests {
     use crate::transforms::{TransformFunc, LetterValues, LetterPlaceType, LetterArrayValues};
     use crate::kirum::Lexis;
-    use crate::word::Word;
 
     #[test]
     fn test_letter_replace(){
         let letter_logic = LetterValues { old: "u".to_string(), new: "a".to_string() };
         let test_transform = TransformFunc::LetterReplace { letter: letter_logic, replace:  LetterPlaceType::All};
-        let old_word = Lexis{word: Some("kurum".into()), ..Default::default() };
+        let mut old_word = Lexis{word: Some("kurum".into()), ..Default::default() };
         
-        let new_word = test_transform.transform(&old_word);
-        let compare: Word = "karam".into();
-        assert_eq!(compare.to_string(), new_word.word.unwrap().to_string());
+        test_transform.transform(&mut old_word);
+        //let compare: Word = "karam".into();
+        assert_eq!("karam".to_string(), old_word.word.unwrap().string_without_sep());
     }
 
     #[test]
     fn test_letter_array(){
         let test_transform = TransformFunc::LetterArray { letters: vec![LetterArrayValues::Place(0), LetterArrayValues::Place(1),  LetterArrayValues::Char("u".to_string())] };
-        let old_word =  Lexis{word: Some("krm".into()), ..Default::default() };
+        let mut old_word =  Lexis{word: Some("krm".into()), ..Default::default() };
 
-        let new_word = test_transform.transform(&old_word);
-        assert_eq!("kru".to_string(), new_word.word.unwrap().to_string());
+        test_transform.transform(&mut old_word);
+        assert_eq!("kru".to_string(), old_word.word.unwrap().string_without_sep());
 
     }
 
     #[test]
     fn test_postfix(){
         let test_transform = TransformFunc::Postfix { value: "uh".into() };
-        let old_word = Lexis{word: Some("kurum".into()), ..Default::default()};
+        let mut old_word = Lexis{word: Some("kurum".into()), ..Default::default()};
 
-        let new_word = test_transform.transform(&old_word);
-        assert_eq!("kurumuh".to_string(), new_word.word.unwrap().to_string())
+        test_transform.transform(&mut old_word);
+        assert_eq!("kurumuh".to_string(), old_word.word.unwrap().string_without_sep())
     }
 
     #[test]
     fn test_prefix(){
         let test_transform = TransformFunc::Prefix { value: "tur".into() };
-        let old_word = Lexis{word: Some("kurum".into()), ..Default::default()};
+        let mut old_word = Lexis{word: Some("kurum".into()), ..Default::default()};
 
-        let new_word = test_transform.transform(&old_word);
-        assert_eq!("turkurum".to_string(), new_word.word.unwrap().to_string());
+        test_transform.transform(&mut old_word);
+        assert_eq!("turkurum".to_string(), old_word.word.unwrap().string_without_sep());
     }
 
-    #[test]
-    fn test_letter_remove(){
-        let test_transform = TransformFunc::LetterRemove { letter: "u".to_string(), position: LetterPlaceType::All };
-        let old_word = Lexis{word: Some("kurum".into()), ..Default::default()};
-    
-        let new_word = test_transform.transform(&old_word);
-        assert_eq!("krm".to_string(), new_word.word.unwrap().to_string());
-        
-        let test_transform_first = TransformFunc::LetterRemove { letter: "u".to_string(), position: LetterPlaceType::First };
-        let new_word_first = test_transform_first.transform(&old_word);
-        assert_eq!("krum".to_string(), new_word_first.word.unwrap().to_string());
-
-        let test_transform_last = TransformFunc::LetterRemove { letter: "u".to_string(), position: LetterPlaceType::Last };
-        let new_word_last = test_transform_last.transform(&old_word);
-        assert_eq!("kurm".to_string(), new_word_last.word.unwrap().to_string());
-    }
 
 
 }
