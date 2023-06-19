@@ -1,4 +1,4 @@
-use clap::Parser;
+use clap::{Parser, ValueEnum};
 
 #[derive(Parser, Clone)]
 #[clap(author, version, long_about = None)]
@@ -88,10 +88,20 @@ pub enum Generate{
         /// The name of the daughter language. This will become the "language" field in the daughter Lexis
         #[clap(short, long, value_parser)]
         name: String,
-        /// Output file to write the new language file to
+        /// Output file to write the new language file to. If group_by is set, this is used as the directory prefix.
         #[clap(short, long, value_parser)]
-        output: String
+        output: String,
+        /// group output into different files
+        #[clap(short='b', long, value_enum)]
+        group_by: Option<SeparateValues>
     }
+}
+
+#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ValueEnum, Debug)]
+pub enum SeparateValues {
+    Word,
+    LexisType,
+    Archaic,
 }
 
 #[derive(clap::Subcommand, Clone)]

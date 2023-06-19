@@ -94,7 +94,7 @@ pub fn create_json_graph(lex: Vec<(Lexis, Etymology)>) -> WordGraph{
     for (word, ety) in lex{
         let base: RawLexicalEntry = word.clone().into();
         let complete = RawLexicalEntry{etymology: Some(ety), ..base};
-        let key = format!("daughter-gen-{}", word.clone().word.unwrap().to_string());
+        let key = format!("daughter-gen-{}", word.clone().word.unwrap().string_without_sep());
         graph.insert(key, complete);
     }
     WordGraph { words: graph }
