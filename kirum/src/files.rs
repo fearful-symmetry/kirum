@@ -3,7 +3,25 @@ use anyhow::{Result, Context, anyhow};
 use libkirum::{kirum::{LanguageTree, Lexis}, transforms::{Transform, TransformFunc}, word::{Etymology, Edge}};
 use walkdir::{WalkDir, DirEntry};
 use crate::entries::{RawTransform, RawLexicalEntry, TransformGraph, WordGraph};
+use handlebars::Handlebars;
 
+
+pub fn apply_def_vars(var_file: Option<String>, dict: &mut Vec<Lexis>) -> Result<()> {
+    if let Some(vars) = var_file {
+        debug!("Applying variables from {}", vars);
+        let vars_toml = std::fs::read_to_string(vars)?;
+                
+        let vars: HashMap<String, String> = toml::from_str(&vars_toml)?;
+    
+        for word in dict {
+            let mut handlebars = Handlebars::new();
+            handlebars.register_template_string("def", &word.definition)?;
+            let updated = handlebars.render("def", &vars)?;
+            word.definition = updated;
+        }
+    }
+    Ok(())
+}
 
 /// read a list of tree and transform files, return the raw Language Tree Object
 pub fn read_from_files(transforms:Vec<PathBuf>, graphs:Vec<PathBuf>) -> Result<LanguageTree>{
@@ -166,8 +184,11 @@ pub fn read_and_compute(transforms: Option<String>, graph: Option<String>, direc
 #[cfg(test)]
 mod tests {
     use anyhow::Result;
+    use libkirum::kirum::Lexis;
 
     use crate::files::read_and_compute;
+
+    use super::apply_def_vars;
 
     #[test]
     fn test_ingest_with_derivatives() -> Result<()> {
@@ -176,6 +197,19 @@ mod tests {
         let rendered_dict = computed.to_vec();
 
         assert_eq!(4, rendered_dict.len());
+        Ok(())
+    }
+
+    #[test]
+    fn test_def_tmpls() -> Result<()> {
+        let vars = Some(String::from("src/test_files/test_tmpl_vars.toml"));
+        let example_lex = Lexis{definition: String::from("a word in {{ln}}"), ..Default::default()};
+        let mut dict = vec![example_lex];
+
+        apply_def_vars(vars, &mut dict)?;
+
+        assert_eq!("a word in test_lang".to_string(), dict[0].definition);
+
         Ok(())
     }
 

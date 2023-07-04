@@ -6,7 +6,7 @@ mod stat;
 mod new;
 mod generate;
 use clap::Parser;
-use files::read_and_compute;
+use files::{read_and_compute, apply_def_vars};
 use new::create_new_project;
 use anyhow::Result;
 use stat::gen_stats;
@@ -43,9 +43,11 @@ fn main() -> Result<()> {
             let computed = read_and_compute(None, None, directory)?;
             gen_stats(computed)
         }
-        cli::Commands::Render{command, transforms, graph, directory} =>{
+        cli::Commands::Render{command, transforms, graph, directory, variables} =>{
             let computed = read_and_compute(transforms, graph, directory)?;
-            let rendered_dict = computed.to_vec();
+            let mut rendered_dict = computed.to_vec();
+            apply_def_vars(variables, &mut rendered_dict)?;
+
             match command{
                 cli::Format::Line =>{
                     let mut acc = String::new();
@@ -85,7 +87,10 @@ fn main() -> Result<()> {
         let mut out_file = File::create(out_path)?;
         write!(out_file, "{}", out_data)?;
     }else {
-        info!("{}", out_data);    
+        if out_data.len() > 0 {
+            info!("{}", out_data);    
+        }
+        
     }
     
 

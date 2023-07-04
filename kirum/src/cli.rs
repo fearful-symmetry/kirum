@@ -50,10 +50,14 @@ pub enum Commands{
         /// JSON file of a language graph
         #[clap(short, long, value_parser)]
         graph: Option<String>,
-
-        /// path to a directory to read in all transform and graph files
+        /// path to a directory to read in all transform and graph files.
+        /// Can be specified instead of -g -d
         #[clap(short, long, value_parser)]
         directory: Option<String>,
+        /// TOML file that will be used to resolve template variables in definition fields.
+        /// Template variables can be written into Lexis definition fields using {{handlebars_variables}}
+        #[clap(short, long, value_parser)]
+        variables: Option<String>,
 
         #[clap(subcommand)]
         command: Format
