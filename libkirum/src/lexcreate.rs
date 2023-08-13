@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize, de::Visitor};
 
 #[derive(Clone, PartialEq, Serialize, Deserialize, Default, Debug)]
 pub struct LexPhonology {
-    pub phonemes: HashMap<String, Vec<PhoneticReference>>,
+    pub groups: HashMap<String, Vec<PhoneticReference>>,
     pub lexis_types: HashMap<String, Vec<PhoneticReference>>
 }
 
@@ -44,7 +44,7 @@ impl<'de> Visitor<'de> for PhoneticReferenceVisitor {
 impl From<&str> for PhoneticReference{
     fn from(value: &str) -> Self {
         let mut phon_vec: Vec<CreateValue> = Vec::new();
-        if value.matches(" ").count() > 1{
+        if value.matches(' ').count() > 1{
             for char in value.split_whitespace(){
                 phon_vec.push(char.into())
             }
@@ -115,6 +115,7 @@ impl<'de> Visitor<'de> for CreateValueVisitor {
 
 impl LexPhonology {
 
+    /// Creates a new random word based on the applied phonetic rules
     pub fn create_word(&self, lexis_type: &str) -> Option<Lemma> {
         if let Some(found_type_list) = self.lexis_types.get(lexis_type) {
             if let Some(selected_phon) = found_type_list.choose(&mut rand::thread_rng()) {
@@ -129,9 +130,9 @@ impl LexPhonology {
         let mut phonetic_acc = Lemma::default();
         for phon in &pref.0 {
             match phon {
-                CreateValue::Phoneme(p) => {phonetic_acc.push_char(&p)},
+                CreateValue::Phoneme(p) => {phonetic_acc.push_char(p)},
                 CreateValue::Reference(single_ref) => {
-                    if let Some(found_ref) =  self.random_phoneme(&single_ref) {
+                    if let Some(found_ref) =  self.random_phoneme(single_ref) {
                         phonetic_acc.push(found_ref)
                     } else {
                         return None
@@ -140,7 +141,7 @@ impl LexPhonology {
             }
         }
 
-        if phonetic_acc.len() == 0 {
+        if phonetic_acc.is_empty(){
             None
         } else {
             Some(phonetic_acc)
@@ -149,7 +150,7 @@ impl LexPhonology {
     }
 
     fn random_phoneme(&self, phoneme_key: &str) -> Option<Lemma> {
-        if let Some(type_val) = self.phonemes.get(phoneme_key) {
+        if let Some(type_val) = self.groups.get(phoneme_key) {
             let picked_from = type_val.choose(&mut rand::thread_rng());
             if let Some(picked) = picked_from {
                 return self.resolve_phonetic_reference(picked)
@@ -207,7 +208,7 @@ mod tests {
     #[test]
     fn test_basic_gen() {
         let test_phon = LexPhonology{
-            phonemes: HashMap::from([
+            groups: HashMap::from([
                 ("C".to_string(),
                 vec![
                     PhoneticReference(vec![CreateValue::Phoneme("t".to_string())]), 

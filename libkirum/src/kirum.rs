@@ -126,7 +126,7 @@ impl IntoIterator for LanguageTree {
 impl LanguageTree {
     pub fn new() -> Self {
         LanguageTree {graph: Graph::<Lexis, TreeEtymology, petgraph::Directed>::new(), 
-            word_creator_phonology: lexcreate::LexPhonology { phonemes: HashMap::new(), lexis_types: HashMap::new() }}
+            word_creator_phonology: lexcreate::LexPhonology { groups: HashMap::new(), lexis_types: HashMap::new() }}
 
     }
 
@@ -362,7 +362,7 @@ impl LanguageTree {
                 return Some(self.graph[node].clone())
             }
         }
-        return None
+        None
     }
 
 
@@ -407,8 +407,8 @@ mod tests {
 
     use std::collections::HashMap;
     use log::LevelFilter;
-    use crate::{kirum::{LanguageTree, Lexis}, transforms::{Transform, LetterArrayValues, TransformFunc, self, LetterValues}, matching::{LexisMatch, Value}, lexcreate::{LexPhonology, CreateValue, PhoneticReference}};
-    use env_logger::Builder; 
+    use crate::{kirum::{LanguageTree, Lexis}, transforms::{Transform, LetterArrayValues, TransformFunc, self, LetterValues}, matching::{LexisMatch, Value}, lexcreate::LexPhonology};
+    use env_logger::Builder;
 
     fn create_basic_words() -> LanguageTree {
         let parent = Lexis{id: "parent".to_string(), word: Some("wrh".into()), language: "gauntlet".to_string(), lexis_type: "root".to_string(), ..Default::default()};
@@ -438,7 +438,7 @@ mod tests {
         let log_level = LevelFilter::Trace;
         Builder::new().filter_level(log_level).init();
         let test_phon_rules = LexPhonology{
-            phonemes: HashMap::from([
+            groups: HashMap::from([
                 ("C".to_string(),
                 vec![
                     "h".into(), 

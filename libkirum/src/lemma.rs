@@ -84,7 +84,7 @@ impl From<Vec<String>> for Lemma {
     fn from(value: Vec<String>) -> Self {
         let mut build = String::new();
         for part in value.into_iter() {
-            if part == WORD_SEP.to_string() || part == "" {
+            if part == WORD_SEP.to_string() || part.is_empty() {
                 continue
             }
             build = format!("{}{}", build, part);
@@ -122,7 +122,7 @@ impl std::string::ToString for Lemma {
 
 impl From<Lemma> for Vec<String> {
     fn from(value: Lemma) -> Self {
-        value.value.split(WORD_SEP).map(|c|c.to_owned()).filter(|c| c != "").collect()
+        value.value.split(WORD_SEP).map(|c|c.to_owned()).filter(|c| !c.is_empty()).collect()
     }
 }
 
@@ -133,8 +133,12 @@ impl Lemma {
         self.clone().into_iter().count()
     }
 
+    pub fn is_empty(&self) -> bool{
+        self.value.is_empty()
+    }
+
     pub fn push(&mut self, pushed: Lemma) {
-        if self.len() >0 {
+        if !self.is_empty(){
             let mut vectored: Vec<String> = self.clone().into();
             let mut update_vec: Vec<String> = pushed.into();
             vectored.append(&mut update_vec);
@@ -148,7 +152,7 @@ impl Lemma {
 
     pub fn push_char(&mut self, pushed: &str) {
         // a bit horrible, but the easiest way to insure we're inserting the separators properly
-        if self.len() > 0 {
+        if !self.is_empty() {
             let mut vectored: Vec<String> = self.clone().into();
             vectored.push(pushed.to_string());
             let updated: Lemma = vectored.into();

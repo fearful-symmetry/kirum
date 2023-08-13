@@ -30,13 +30,6 @@ pub enum Commands{
     },
     /// Print a graphviz representation of the language
     Graphviz{
-        /// JSON file of defined etymon transforms
-        #[clap(short, long, value_parser)]
-        transforms: Option<String>,
-        /// json file of a language graph
-        #[clap(short, long, value_parser)]
-        graph: Option<String>,
-
         /// path to a directory to read in all transform and graph files
         #[clap(short, long, value_parser)]
         directory: Option<String>,
@@ -44,12 +37,6 @@ pub enum Commands{
 
     /// Render a lexicon from an existing set of graph files and transformations
     Render{
-        /// JSON file of defined etymon transforms
-        #[clap(short, long, value_parser)]
-        transforms: Option<String>,
-        /// JSON file of a language graph
-        #[clap(short, long, value_parser)]
-        graph: Option<String>,
         /// path to a directory to read in all transform and graph files.
         /// Can be specified instead of -g -d
         #[clap(short, long, value_parser)]
@@ -74,12 +61,6 @@ pub enum Commands{
 pub enum Generate{
     /// Generate a daughter language from an existing language in a graph.
     Daughter{
-        /// The file path to the existing language graph.
-        #[clap(short, long, value_parser)]
-        graph: Option<String>,
-        /// Path to transforms referenced in existing graph.
-        #[clap(short, long, value_parser)]
-        transforms: Option<String>,
         // path to a directory to read in all transform and graph files. Can be used instead of -t or -g
         #[clap(short, long, value_parser)]
         directory: Option<String>,

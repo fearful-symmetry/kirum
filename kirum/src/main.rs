@@ -12,7 +12,7 @@ use anyhow::Result;
 use stat::gen_stats;
 use std::{fs::File, io::Write};
 //use csv::WriterBuilder;
-use env_logger::{Builder};
+use env_logger::Builder;
 use log::LevelFilter;
 
 #[macro_use]
@@ -35,16 +35,16 @@ fn main() -> Result<()> {
             create_new_project(&name)?;
             format!("created new project {}", name)
         },
-        cli::Commands::Graphviz{transforms, graph, directory} =>{
-            let computed = read_and_compute(transforms, graph, directory)?;
+        cli::Commands::Graphviz{directory} =>{
+            let computed = read_and_compute(directory)?;
             computed.graphviz()
         },
         cli::Commands::Stat { directory } => {
-            let computed = read_and_compute(None, None, directory)?;
+            let computed = read_and_compute(directory)?;
             gen_stats(computed)
         }
-        cli::Commands::Render{command, transforms, graph, directory, variables} =>{
-            let computed = read_and_compute(transforms, graph, directory)?;
+        cli::Commands::Render{command, directory, variables} =>{
+            let computed = read_and_compute(directory)?;
             let mut rendered_dict = computed.to_vec();
             apply_def_vars(variables, &mut rendered_dict)?;
 
@@ -73,9 +73,9 @@ fn main() -> Result<()> {
         },
         cli::Commands::Generate{command} =>{
             match command{
-                cli::Generate::Daughter { graph, transforms, daughter_etymology, ancestor, 
+                cli::Generate::Daughter { daughter_etymology, ancestor, 
                     name:lang_name, directory, output, group_by: separate_by_field } =>{
-                    generate::daughter(graph, transforms, daughter_etymology, 
+                    generate::daughter(daughter_etymology, 
                         ancestor, lang_name, directory, output, separate_by_field)?
                 }
                 
@@ -86,11 +86,8 @@ fn main() -> Result<()> {
     if let Some(out_path) = cli.output{
         let mut out_file = File::create(out_path)?;
         write!(out_file, "{}", out_data)?;
-    }else {
-        if out_data.len() > 0 {
+    }else if !out_data.is_empty() {
             info!("{}", out_data);    
-        }
-        
     }
     
 
