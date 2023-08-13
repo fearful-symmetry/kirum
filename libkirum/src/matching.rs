@@ -198,7 +198,8 @@ mod tests {
         pos: None,
         definition: "".to_string(),
         archaic: false,
-        tags: vec!["tag1".to_string(), "tag2".to_string()]
+        tags: vec!["tag1".to_string(), "tag2".to_string()],
+        word_create: None
         }; 
 
         let test_match = LexisMatch{

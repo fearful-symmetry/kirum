@@ -39,6 +39,8 @@ pub struct RawLexicalEntry {
     pub archaic: bool,
     pub tags: Option<Vec<String>>,
 
+    /// A tag that tells Kirum to generate the word based on the phonetic ruleset specified by the tag
+    pub generate: Option<String>,
     /// Words that will be added as a derivative of the enclosing Lexis; any value not specified will be taken from the enclosing entry.
     pub derivatives: Option<Vec<Derivative>>
 }
@@ -68,7 +70,9 @@ impl From<RawLexicalEntry> for Lexis{
             lexis_type: source.word_type.unwrap_or("".to_string()), 
             definition: source.definition, 
             archaic: source.archaic,
-            tags: source.tags.unwrap_or(Vec::new())}
+            tags: source.tags.unwrap_or(Vec::new()),
+            word_create: source.generate
+        }
     }
 }
 
@@ -83,6 +87,7 @@ impl From<Lexis> for RawLexicalEntry{
             archaic: value.archaic, 
             tags: if !value.tags.is_empty() {Some(value.tags)} else {None},
             derivatives: None,
+            generate: value.word_create
         }
     }
 }

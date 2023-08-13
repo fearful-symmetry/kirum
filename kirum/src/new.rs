@@ -39,6 +39,7 @@ pub fn create_new_project(name: &str) -> Result<()> {
         archaic: true, 
         tags: None, 
         derivatives: None, 
+        generate: None,
     });
     word_map.insert("latin_example".into(), RawLexicalEntry { 
         word: None, 
@@ -49,6 +50,7 @@ pub fn create_new_project(name: &str) -> Result<()> {
         etymology: Some(Etymology { etymons: vec![Edge{etymon: "latin_verb".into(), transforms: Some(vec!["latin-from-verb".into()]), agglutination_order: None}] }), 
         archaic: true, 
         tags: Some(vec!["example".into(), "default".into()]), 
+        generate: None,
         derivatives: Some(vec![Derivative{lexis: RawLexicalEntry { 
                 word: None, 
                 word_type: None, 
@@ -58,7 +60,8 @@ pub fn create_new_project(name: &str) -> Result<()> {
                 etymology: None, 
                 archaic: true, 
                 tags: None, 
-                derivatives: None
+                derivatives: None,
+                generate: None,
             },
             transforms: Some(vec!["of-from-latin".to_owned()]),
     }]) 
