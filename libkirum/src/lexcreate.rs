@@ -4,14 +4,37 @@ use crate::lemma::Lemma;
 use serde::{Deserialize, Serialize, de::Visitor};
 
 
+/// Carries the phonological rules for a word generator.
 #[derive(Clone, PartialEq, Serialize, Deserialize, Default, Debug)]
 pub struct LexPhonology {
+    /// May contain any kind of phonetic value, syllables, phonemes, etc
+    /// the keys of the hashmap are referenced in the following lexis_types below.
+    /// When a word is generated, a PhoneticReference from the vector is chosen at random.
+    /// Keys must be all uppercase to distinguish them from letter values.
+    /// For example:
+    /// C = v b r t h # The available consonants
+    /// V = i u o y e # The available vowels
+    /// S = CVC CVV VVC # The possible syllable structures
     pub groups: HashMap<String, Vec<PhoneticReference>>,
+    /// A map of `groups` keys or PhoneticReferences. A key value in the map can be referenced
+    /// in the `create` field of a Lexis to generate a word.
+    /// Expanding on the above example: 
+    /// word = S SS SuiS
+    /// prefix = S uS Su
     pub lexis_types: HashMap<String, Vec<PhoneticReference>>
 }
 
-#[derive(Clone, PartialEq, Serialize, Default, Debug)]
+/// A single "reference" to a phonetic value used to generate words.
+#[derive(Clone, PartialEq, Default, Debug)]
 pub struct PhoneticReference(Vec<CreateValue>);
+
+impl Serialize for PhoneticReference{
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+        where
+            S: serde::Serializer {
+        serializer.serialize_str(&self.to_string())
+    }
+}
 
 impl<'de> Deserialize<'de> for PhoneticReference {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
@@ -59,11 +82,30 @@ impl From<&str> for PhoneticReference{
 
 }
 
+impl ToString for PhoneticReference{
+    fn to_string(&self) -> String {
+        let mut acc = String::new();
+        for part in &self.0{
+            acc.push_str(&part.to_string())
+        }
+        acc
+    }
+}
 
-#[derive(Clone, PartialEq, PartialOrd, Eq, Ord, Serialize, Debug)]
+
+#[derive(Clone, PartialEq, PartialOrd, Eq, Ord, Debug)]
 pub enum CreateValue {
     Phoneme(String),
     Reference(String)
+}
+
+impl ToString for CreateValue{
+    fn to_string(&self) -> String {
+        match self {
+            Self::Phoneme(p) => p.to_string(),
+            Self::Reference(r) => r.to_string()
+        }
+    }
 }
 
 impl From<&str> for CreateValue{
@@ -84,6 +126,14 @@ impl From<char> for CreateValue{
         } else {
             CreateValue::Reference(value.to_string())
         }
+    }
+}
+
+impl Serialize for CreateValue{
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+        where
+            S: serde::Serializer {
+        serializer.serialize_str(&self.to_string())
     }
 }
 

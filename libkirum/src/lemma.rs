@@ -147,7 +147,6 @@ impl Lemma {
         } else {
             self.value = pushed.value
         }
-
     }
 
     pub fn push_char(&mut self, pushed: &str) {

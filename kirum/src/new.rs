@@ -1,15 +1,17 @@
 use std::{path::PathBuf, io::Write, collections::HashMap, fs::{self, File}};
-use libkirum::{transforms::TransformFunc, word::{Etymology, Edge}};
+use libkirum::{transforms::TransformFunc, word::{Etymology, Edge}, lexcreate::LexPhonology};
 use crate::entries::{RawTransform, TransformGraph, RawLexicalEntry, Derivative, WordGraph};
-use anyhow::Result;
+use anyhow::{Result, Context};
 
 /// Helper function. Create a new project, and write it out.
 pub fn create_new_project(name: &str) -> Result<()> {
     let base = PathBuf::from(name);
     let mut ety_path = base.join("etymology");
     let mut tree_path = base.join("tree");
+    let mut phonetic_path = base.join("phonetics");
     fs::create_dir_all(&ety_path)?;
     fs::create_dir_all(&tree_path)?;
+    fs::create_dir_all(&phonetic_path)?;
 
     let mut transform_map: HashMap<String, RawTransform> = HashMap::new();
     transform_map.insert("of-from-latin".into(), RawTransform { 
@@ -71,18 +73,37 @@ pub fn create_new_project(name: &str) -> Result<()> {
         words: word_map
     };
 
+    let example_phonetics = LexPhonology{
+        groups: HashMap::from([
+            ("C".into(), vec!["x".into(), "m".into(), "p".into(), "l".into(),]),
+            ("V".into(), vec!["e".into(), "a".into()]),
+            ("S".into(), vec!["VC".into(), "CCV".into()])
+        ]),
+        lexis_types: HashMap::from([
+            ("word".into(), vec!["SSS".into()])
+        ])
+    };
+
+    let phonetic_data = serde_json::to_string_pretty(&example_phonetics)?;
     let graph_data = serde_json::to_string_pretty(&example_tree)?;
     let trans_data = serde_json::to_string_pretty(&example_transforms)?;
 
-    tree_path.push(name);
-    tree_path.set_extension("json");
-    let mut tree_file = File::create(tree_path)?;
-    write!(tree_file, "{}", graph_data)?;
+    write_json(name, &mut tree_path, graph_data)?;
+    write_json("ety", &mut ety_path, trans_data)?;
+    write_json("rules", &mut phonetic_path, phonetic_data)?;
 
-    ety_path.push("ety");
-    ety_path.set_extension("json");
-    let mut ety_file = File::create(ety_path)?;
-    write!(ety_file, "{}", trans_data)?;
+
+    Ok(())
+}
+
+fn write_json(subpath: &str, base_path: &mut PathBuf, data: String) -> Result<()>{
+    base_path.push(subpath);
+    base_path.set_extension("json");
+    let mut phonetics_file = File::create(base_path.clone())
+    .context(format!("could not create  json file {} {}", subpath, base_path.display()))?;
+
+    write!(phonetics_file, "{}", data)
+    .context(format!("error writing phonetics file"))?;
 
     Ok(())
 }

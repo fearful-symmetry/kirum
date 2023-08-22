@@ -244,6 +244,17 @@ mod tests {
     }
 
     #[test]
+    fn test_phonetic_create() -> Result<()> {
+        let dir = Some(String::from("src/test_files/with_phonetic_rules"));
+        let computed = read_and_compute(dir)?;
+        let rendered: Vec<Lexis> = computed.to_vec().into_iter().filter(|w| w.word.is_some()).collect();
+        println!("Got: {:?}", rendered);
+        assert_eq!(3, rendered.len());
+
+        Ok(())
+    }
+
+    #[test]
     fn test_ingest_with_derivatives() -> Result<()> {
         let directory = Some(String::from("src/test_files/test_der"));
         let computed = read_and_compute(directory)?;
