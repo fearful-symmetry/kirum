@@ -1,0 +1,25 @@
+{
+  "groups": {
+    "V": [
+      "e",
+      "a"
+    ],
+    "S": [
+      "VC",
+      "CCV",
+      "VyV"
+    ],
+    "C": [
+      "x",
+      "m",
+      "p",
+      "l"
+    ]
+  },
+  "lexis_types": {
+    "word_rule": [
+      "SSS",
+      "SCSS"
+    ]
+  }
+}

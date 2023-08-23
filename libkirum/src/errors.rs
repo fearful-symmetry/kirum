@@ -9,3 +9,10 @@ pub enum LangError {
     #[error("error parsing JSON input")]
     JSONSerdeError(#[source] serde_json::Error)
 }
+
+#[derive(thiserror::Error, Debug)]
+#[error("error parsing phonetic value: {msg}; found {found}")]
+pub struct PhoneticParsingError {
+    pub msg: &'static str,
+    pub found: String
+}

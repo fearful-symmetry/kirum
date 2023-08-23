@@ -11,6 +11,9 @@ pub struct Args {
     /// Output file; defaults to stdout if unspecified
     #[clap(short, long, value_parser)]
     pub output: Option<String>,
+    #[clap(short, long, default_value_t=false)]
+    /// Do not print any log output
+    pub quiet: bool,
 
     #[clap(subcommand)]
     pub command: Commands
@@ -30,13 +33,6 @@ pub enum Commands{
     },
     /// Print a graphviz representation of the language
     Graphviz{
-        /// JSON file of defined etymon transforms
-        #[clap(short, long, value_parser)]
-        transforms: Option<String>,
-        /// json file of a language graph
-        #[clap(short, long, value_parser)]
-        graph: Option<String>,
-
         /// path to a directory to read in all transform and graph files
         #[clap(short, long, value_parser)]
         directory: Option<String>,
@@ -44,12 +40,6 @@ pub enum Commands{
 
     /// Render a lexicon from an existing set of graph files and transformations
     Render{
-        /// JSON file of defined etymon transforms
-        #[clap(short, long, value_parser)]
-        transforms: Option<String>,
-        /// JSON file of a language graph
-        #[clap(short, long, value_parser)]
-        graph: Option<String>,
         /// path to a directory to read in all transform and graph files.
         /// Can be specified instead of -g -d
         #[clap(short, long, value_parser)]
@@ -74,12 +64,6 @@ pub enum Commands{
 pub enum Generate{
     /// Generate a daughter language from an existing language in a graph.
     Daughter{
-        /// The file path to the existing language graph.
-        #[clap(short, long, value_parser)]
-        graph: Option<String>,
-        /// Path to transforms referenced in existing graph.
-        #[clap(short, long, value_parser)]
-        transforms: Option<String>,
         // path to a directory to read in all transform and graph files. Can be used instead of -t or -g
         #[clap(short, long, value_parser)]
         directory: Option<String>,
@@ -108,7 +92,7 @@ pub enum SeparateValues {
     Archaic,
 }
 
-#[derive(clap::Subcommand, Clone)]
+#[derive(clap::Subcommand, Clone, PartialEq, PartialOrd)]
 pub enum Format{
      /// Print one word per line
     Line,
@@ -122,5 +106,7 @@ pub enum Format{
         /// Optional rhai scripts for processing template data. See https://docs.rs/handlebars/latest/handlebars/#script-helper
         #[clap(short, long, value_parser)]
         rhai_files: Option<Vec<String>>
-    }
+    },
+    /// Prints a JSON object of the language
+    Json
 }

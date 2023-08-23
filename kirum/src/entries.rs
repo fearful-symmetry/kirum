@@ -39,6 +39,8 @@ pub struct RawLexicalEntry {
     pub archaic: bool,
     pub tags: Option<Vec<String>>,
 
+    /// A tag that tells Kirum to generate the word based on the phonetic ruleset specified by the tag
+    pub generate: Option<String>,
     /// Words that will be added as a derivative of the enclosing Lexis; any value not specified will be taken from the enclosing entry.
     pub derivatives: Option<Vec<Derivative>>
 }
@@ -68,7 +70,9 @@ impl From<RawLexicalEntry> for Lexis{
             lexis_type: source.word_type.unwrap_or("".to_string()), 
             definition: source.definition, 
             archaic: source.archaic,
-            tags: source.tags.unwrap_or(Vec::new())}
+            tags: source.tags.unwrap_or(Vec::new()),
+            word_create: source.generate
+        }
     }
 }
 
@@ -83,18 +87,22 @@ impl From<Lexis> for RawLexicalEntry{
             archaic: value.archaic, 
             tags: if !value.tags.is_empty() {Some(value.tags)} else {None},
             derivatives: None,
+            generate: value.word_create
         }
     }
 }
 
-// take the output of a call to to_vec_etymons() and structure it like a graph json file structure
-pub fn create_json_graph(lex: Vec<(Lexis, Etymology)>) -> WordGraph{
+/// take the output of a call to to_vec_etymons() and structure it like a graph json file structure
+pub fn create_json_graph<F>(lex: Vec<(Lexis, Etymology)>,mut key_gen: F) -> WordGraph
+    where F: FnMut(Lexis) -> String
+    {
     let mut graph: HashMap<String, RawLexicalEntry> = HashMap::new();
 
     for (word, ety) in lex{
         let base: RawLexicalEntry = word.clone().into();
-        let complete = RawLexicalEntry{etymology: Some(ety), ..base};
-        let key = format!("daughter-gen-{}", word.clone().word.unwrap().string_without_sep());
+        let found_ety = if !ety.etymons.is_empty() {Some(ety)} else {None};
+        let complete = RawLexicalEntry{etymology: found_ety, ..base};
+        let key = key_gen(word);
         graph.insert(key, complete);
     }
     WordGraph { words: graph }

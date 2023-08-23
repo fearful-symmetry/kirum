@@ -3,16 +3,14 @@ use anyhow::{Result, Context, anyhow};
 use libkirum::{transforms::Transform, kirum::Lexis, word::Etymology};
 use crate::{files::read_and_compute, entries, cli::SeparateValues};
 
-pub fn daughter(graph: Option<String>, 
-    transforms: Option<String>, 
-    daughter_ety: String, 
+pub fn daughter(daughter_ety: String, 
     ancestor: String, 
     lang_name: String, 
     directory: Option<String>, 
     output: String, 
     by_field: Option<SeparateValues>) -> Result<String> {
         // setup, read files, etc
-        let mut computed = read_and_compute(transforms, graph, directory)
+        let mut computed = read_and_compute(directory)
         .context("error reading existing graph and transforms")?;
 
         let trans_raw = std::fs::read_to_string(daughter_ety.clone())
@@ -48,7 +46,7 @@ pub fn daughter(graph: Option<String>,
         }
 
         for (fname, data) in file_map {
-            let graph = entries::create_json_graph(data);
+            let graph = entries::create_json_graph(data, |l| format!("daughter-gen-{}", l.word.unwrap().string_without_sep()));
 
             let graph_data = serde_json::to_string_pretty(&graph)
             .context("error creating JSON from graph")?;

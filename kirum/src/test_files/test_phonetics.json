@@ -1,0 +1,10 @@
+{
+    "groups": {
+        "C": ["r", "k", "c", "ch", "b"],
+        "V": ["i", "u", "o"],
+        "S": ["CV", "CVC", "VC"]
+    },
+    "lexis_types":{
+        "word": ["S", "SuS", "iSSS", "SSSS"]
+    }
+}

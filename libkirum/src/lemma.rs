@@ -6,9 +6,15 @@ use log::error;
 
 const WORD_SEP: char = '\u{200B}';
 
-#[derive(Clone, Debug, Default, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Clone, Default, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Lemma {
     value: String,
+}
+
+impl std::fmt::Debug for Lemma {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_fmt(format_args!("{}", self.string_without_sep()))
+    }
 }
 
 
@@ -62,7 +68,7 @@ impl IntoIterator for Lemma {
     type IntoIter = std::vec::IntoIter<Self::Item>;
 
     fn into_iter(self) -> Self::IntoIter {
-        let separated: Vec<String> = self.value.split(WORD_SEP).map(|c|c.to_owned()).collect();
+        let separated: Vec<String> = self.into();
         separated.into_iter()
     }
 }
@@ -78,7 +84,7 @@ impl From<Vec<String>> for Lemma {
     fn from(value: Vec<String>) -> Self {
         let mut build = String::new();
         for part in value.into_iter() {
-            if part == WORD_SEP.to_string() {
+            if part == WORD_SEP.to_string() || part.is_empty() {
                 continue
             }
             build = format!("{}{}", build, part);
@@ -114,9 +120,48 @@ impl std::string::ToString for Lemma {
     }
 }
 
+impl From<Lemma> for Vec<String> {
+    fn from(value: Lemma) -> Self {
+        value.value.split(WORD_SEP).map(|c|c.to_owned()).filter(|c| !c.is_empty()).collect()
+    }
+}
 
 
 impl Lemma {
+
+    pub fn len(&self) -> usize {
+        self.clone().into_iter().count()
+    }
+
+    pub fn is_empty(&self) -> bool{
+        self.value.is_empty()
+    }
+
+    pub fn push(&mut self, pushed: Lemma) {
+        if !self.is_empty(){
+            let mut vectored: Vec<String> = self.clone().into();
+            let mut update_vec: Vec<String> = pushed.into();
+            vectored.append(&mut update_vec);
+            let updated: Lemma = vectored.into();
+            self.value = updated.value
+        } else {
+            self.value = pushed.value
+        }
+    }
+
+    pub fn push_char(&mut self, pushed: &str) {
+        // a bit horrible, but the easiest way to insure we're inserting the separators properly
+        if !self.is_empty() {
+            let mut vectored: Vec<String> = self.clone().into();
+            vectored.push(pushed.to_string());
+            let updated: Lemma = vectored.into();
+            self.value = updated.value
+        } else {
+            self.value = pushed.to_string();
+        }
+
+    }
+
     /// Return a string without the Lemma-specific character delimiters
     pub fn string_without_sep(&self) -> String {
         let rep = WORD_SEP.to_string();

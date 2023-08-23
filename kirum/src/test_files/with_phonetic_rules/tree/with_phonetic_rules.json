@@ -1,0 +1,46 @@
+{
+  "words": {
+    "latin_verb": {
+      "type": "word",
+      "generate": "word",
+      "language": "Latin",
+      "definition": "To buy, remove",
+      "part_of_speech": "verb",
+      "archaic": true
+    },
+    "latin_example": {
+      "type": "word",
+      "language": "Latin",
+      "definition": "an instance, model, example",
+      "part_of_speech": "noun",
+      "etymology": {
+        "etymons": [
+          {
+            "etymon": "latin_verb",
+            "transforms": [
+              "latin-from-verb"
+            ]
+          }
+        ]
+      },
+      "archaic": true,
+      "tags": [
+        "example",
+        "default"
+      ],
+      "derivatives": [
+        {
+          "lexis": {
+            "language": "Old French",
+            "definition": "model, example",
+            "part_of_speech": "noun",
+            "archaic": true
+          },
+          "transforms": [
+            "of-from-latin"
+          ]
+        }
+      ]
+    }
+  }
+}
