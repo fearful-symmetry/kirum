@@ -6,6 +6,7 @@ mod stat;
 mod new;
 mod generate;
 use clap::Parser;
+use entries::create_json_graph;
 use files::{read_and_compute, apply_def_vars};
 use new::create_new_project;
 use anyhow::Result;
@@ -14,6 +15,7 @@ use std::{fs::File, io::Write};
 //use csv::WriterBuilder;
 use env_logger::Builder;
 use log::LevelFilter;
+
 
 #[macro_use]
 extern crate log;
@@ -28,9 +30,12 @@ fn main() -> Result<()> {
     } else {
         LevelFilter::Trace
     };
-    Builder::new().filter_level(log_level).init();
+    if !cli.quiet {
+        Builder::new().filter_level(log_level).init();    
+    }
+    
 
-    let out_data: String = match cli.command{
+    let out_data: String = match cli.command.clone(){
         cli::Commands::New { name } => {
             create_new_project(&name)?;
             format!("created new project {}", name)
@@ -67,6 +72,11 @@ fn main() -> Result<()> {
                 // },
                 cli::Format::Template { template_file, rhai_files } =>{
                     tmpl::generate_from_tmpl(rendered_dict, template_file, rhai_files)?
+                },
+                cli::Format::Json => {
+                    let words = computed.to_vec_etymons(|_|true);
+                    let word_data = create_json_graph(words, |l| l.id);
+                    serde_json::to_string_pretty(&word_data)?
                 }
                 
             }
@@ -87,9 +97,8 @@ fn main() -> Result<()> {
         let mut out_file = File::create(out_path)?;
         write!(out_file, "{}", out_data)?;
     }else if !out_data.is_empty() {
-            info!("{}", out_data);    
+        println!("{}", out_data);
     }
-    
 
     Ok(())
 }

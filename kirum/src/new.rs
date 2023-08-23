@@ -75,12 +75,12 @@ pub fn create_new_project(name: &str) -> Result<()> {
 
     let example_phonetics = LexPhonology{
         groups: HashMap::from([
-            ("C".into(), vec!["x".into(), "m".into(), "p".into(), "l".into(),]),
-            ("V".into(), vec!["e".into(), "a".into()]),
-            ("S".into(), vec!["VC".into(), "CCV".into()])
+            ('C', vec!["x".try_into()?, "m".try_into()?, "p".try_into()?, "l".try_into()?,]),
+            ('V', vec!["e".try_into()?, "a".try_into()?]),
+            ('S', vec!["VC".try_into()?, "CCV".try_into()?])
         ]),
         lexis_types: HashMap::from([
-            ("word".into(), vec!["SSS".into()])
+            ("word".into(), vec!["SSS".try_into()?])
         ])
     };
 
@@ -103,7 +103,7 @@ fn write_json(subpath: &str, base_path: &mut PathBuf, data: String) -> Result<()
     .context(format!("could not create  json file {} {}", subpath, base_path.display()))?;
 
     write!(phonetics_file, "{}", data)
-    .context(format!("error writing phonetics file"))?;
+    .context("error writing phonetics file".to_string())?;
 
     Ok(())
 }

@@ -46,7 +46,7 @@ pub fn daughter(daughter_ety: String,
         }
 
         for (fname, data) in file_map {
-            let graph = entries::create_json_graph(data);
+            let graph = entries::create_json_graph(data, |l| format!("daughter-gen-{}", l.word.unwrap().string_without_sep()));
 
             let graph_data = serde_json::to_string_pretty(&graph)
             .context("error creating JSON from graph")?;

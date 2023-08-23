@@ -366,7 +366,8 @@ impl LanguageTree {
     }
 
 
-    /// Reduce the language graph to a vector of words that match the provided function. Returns a vector of tuples for each matching word and any associated etymological data.
+    /// Reduce the language graph to a vector of words that match the provided function. 
+    /// Returns a vector of tuples for each matching word and any associated etymological data.
     pub fn to_vec_etymons<F>(self, filter: F) -> Vec<(Lexis, Etymology)> 
     where 
     F: Fn(&Lexis) -> bool,
@@ -406,9 +407,9 @@ fn join_string_vectors(words: &mut [(i32, Lemma)]) -> Lemma{
 mod tests {
 
     use std::collections::HashMap;
-    use log::LevelFilter;
+    //use log::LevelFilter;
     use crate::{kirum::{LanguageTree, Lexis}, transforms::{Transform, LetterArrayValues, TransformFunc, self, LetterValues}, matching::{LexisMatch, Value}, lexcreate::LexPhonology};
-    use env_logger::Builder;
+    //use env_logger::Builder;
 
     fn create_basic_words() -> LanguageTree {
         let parent = Lexis{id: "parent".to_string(), word: Some("wrh".into()), language: "gauntlet".to_string(), lexis_type: "root".to_string(), ..Default::default()};
@@ -435,27 +436,27 @@ mod tests {
 
     #[test]
     fn test_word_create() {
-        let log_level = LevelFilter::Trace;
-        Builder::new().filter_level(log_level).init();
+        //let log_level = LevelFilter::Trace;
+        //Builder::new().filter_level(log_level).init();
         let test_phon_rules = LexPhonology{
             groups: HashMap::from([
-                ("C".to_string(),
+                ('C',
                 vec![
-                    "h".into(), 
-                    "r".into(),
-                    "x".into(),
-                    "k".into()
+                    "h".try_into().unwrap(), 
+                    "r".try_into().unwrap(),
+                    "x".try_into().unwrap(),
+                    "k".try_into().unwrap()
                 ]),
-                ("V".to_string(), 
+                ('V', 
                 vec![
-                    "u".into(),
-                    "i".into()
+                    "u".try_into().unwrap(),
+                    "i".try_into().unwrap()
                 ]),
             ]),
             lexis_types: HashMap::from([
                 ("root".to_string(), 
                 vec![
-                    "CCC".into()
+                    "CCC".try_into().unwrap()
                 ])
             ]),
         };

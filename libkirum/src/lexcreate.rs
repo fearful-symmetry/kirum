@@ -1,8 +1,7 @@
 use std::collections::HashMap;
 use rand::seq::SliceRandom;
-use crate::lemma::Lemma;
-use serde::{Deserialize, Serialize, de::Visitor};
-
+use crate::{lemma::Lemma, errors::{self, PhoneticParsingError}};
+use serde::{Deserialize, Serialize, de::{Visitor, self, Unexpected}};
 
 /// Carries the phonological rules for a word generator.
 #[derive(Clone, PartialEq, Serialize, Deserialize, Default, Debug)]
@@ -15,7 +14,7 @@ pub struct LexPhonology {
     /// C = v b r t h # The available consonants
     /// V = i u o y e # The available vowels
     /// S = CVC CVV VVC # The possible syllable structures
-    pub groups: HashMap<String, Vec<PhoneticReference>>,
+    pub groups: HashMap<char, Vec<PhoneticReference>>,
     /// A map of `groups` keys or PhoneticReferences. A key value in the map can be referenced
     /// in the `create` field of a Lexis to generate a word.
     /// Expanding on the above example: 
@@ -56,7 +55,12 @@ impl<'de> Visitor<'de> for PhoneticReferenceVisitor {
     fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
         where
             E: serde::de::Error, {
-        Ok(v.into())
+        match v.try_into() {
+            Err(_e) => {
+                Err(de::Error::invalid_value(Unexpected::Str(v), &self))
+            },
+            Ok(v) => {Ok(v)}
+        }
     }
 }
 
@@ -64,20 +68,21 @@ impl<'de> Visitor<'de> for PhoneticReferenceVisitor {
 // CCCC
 // C C C C
 // the latter helps for cases where we've inserted a weird character that's more than one unicode character
-impl From<&str> for PhoneticReference{
-    fn from(value: &str) -> Self {
+impl TryFrom<&str> for PhoneticReference{
+    type Error = PhoneticParsingError;
+    fn try_from(value: &str) -> Result<Self, Self::Error> {
         let mut phon_vec: Vec<CreateValue> = Vec::new();
         if value.matches(' ').count() > 1{
             for char in value.split_whitespace(){
-                phon_vec.push(char.into())
+                phon_vec.push(char.try_into()?)
             }
         } else {
-            for char in value.chars(){
+            for char in value.chars(){ 
                 phon_vec.push(char.into())
             }
         }
 
-        PhoneticReference(phon_vec)
+        Ok(PhoneticReference(phon_vec))
     }
 
 }
@@ -96,7 +101,7 @@ impl ToString for PhoneticReference{
 #[derive(Clone, PartialEq, PartialOrd, Eq, Ord, Debug)]
 pub enum CreateValue {
     Phoneme(String),
-    Reference(String)
+    Reference(char)
 }
 
 impl ToString for CreateValue{
@@ -108,14 +113,25 @@ impl ToString for CreateValue{
     }
 }
 
-impl From<&str> for CreateValue{
-    fn from(value: &str) -> Self {
-        let found_lowercase = value.chars().find(|c| c.is_lowercase());
-        if found_lowercase.is_some() {
-            CreateValue::Phoneme(value.to_string())
+impl TryFrom<&str> for CreateValue{
+    type Error = errors::PhoneticParsingError;
+    fn try_from(value: &str) -> Result<Self, Self::Error> {
+        let found_uppercase = value.chars().filter(|c| c.is_uppercase()).count();
+        if found_uppercase == value.len() && value.len() == 1 {
+            let raw: char = value.chars().next()
+            .ok_or_else(|| PhoneticParsingError {msg:"could not find character for reference", 
+            found: value.to_string()})?;
+            Ok(CreateValue::Reference(raw))
+
+        } else if found_uppercase == 0 {
+            Ok(CreateValue::Phoneme(value.to_string()))
+            
         } else {
-            CreateValue::Reference(value.to_string())
+            Err(PhoneticParsingError{msg: "a reference can only be one upper-case character, or an all lowercase phonetic rule", 
+            found: value.to_string()})
         }
+            
+        
     }
 }
 
@@ -124,7 +140,7 @@ impl From<char> for CreateValue{
         if value.is_lowercase(){
             CreateValue::Phoneme(value.to_string())
         } else {
-            CreateValue::Reference(value.to_string())
+            CreateValue::Reference(value)
         }
     }
 }
@@ -154,12 +170,23 @@ impl<'de> Visitor<'de> for CreateValueVisitor {
         write!(formatter, "an upper or lower case character value")
     }
 
+    fn visit_char<E>(self, v: char) -> Result<Self::Value, E>
+        where
+            E: serde::de::Error, {
+    Ok(v.into())
+    }
+
     // logic: if an identifier is all uppercase, treat it as a reference,
     // otherwise, it's a string phoneme
     fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
         where
             E: serde::de::Error, {
-                Ok(v.into())
+                match v.try_into() {
+                    Err(_e) => {
+                        Err(de::Error::invalid_value(Unexpected::Str(v), &self))
+                    },
+                    Ok(v) => {Ok(v)}
+                }
     }
 }
 
@@ -199,7 +226,7 @@ impl LexPhonology {
         
     }
 
-    fn random_phoneme(&self, phoneme_key: &str) -> Option<Lemma> {
+    fn random_phoneme(&self, phoneme_key: &char) -> Option<Lemma> {
         if let Some(type_val) = self.groups.get(phoneme_key) {
             let picked_from = type_val.choose(&mut rand::thread_rng());
             if let Some(picked) = picked_from {
@@ -216,27 +243,37 @@ impl LexPhonology {
 #[cfg(test)]
 mod tests {
     use std::collections::HashMap;
-
-    use crate::lexcreate::PhoneticReference;
-
+    use crate::{lexcreate::PhoneticReference, errors::PhoneticParsingError};
     use super::{LexPhonology, CreateValue};
 
     #[test]
-    fn test_new_no_space(){
-        let test_phon: PhoneticReference = "CCCC".into();
-        let expected = PhoneticReference(vec!["C".into(), "C".into(), "C".into(), "C".into()]);
+    fn test_bad_phonetic_input(){
+        let bad: Result<CreateValue, PhoneticParsingError> = "Ci".try_into();
+        assert!(bad.is_err())
+    }
+
+    #[test]
+    fn test_spaces_bad_input(){
+        let test_phon: Result<CreateValue, PhoneticParsingError> = "C wV i C r rw".try_into();
+        assert!(test_phon.is_err())
+    }
+
+    #[test]
+    fn test_new_no_space() {
+        let test_phon: PhoneticReference = "CCCC".try_into().unwrap();
+        let expected = PhoneticReference(vec!['C'.into(), 'C'.into(), 'C'.into(), 'C'.into()]);
         assert_eq!(test_phon, expected)
     }
 
     #[test]
     fn test_new_spaces() {
-        let test_phon: PhoneticReference = "C V i C r rw".into();
+        let test_phon: PhoneticReference = "C V i C r rw".try_into().unwrap();
 
         let expected = PhoneticReference(vec![
-            CreateValue::Reference("C".to_string()),
-            CreateValue::Reference("V".to_string()),
+            CreateValue::Reference('C'),
+            CreateValue::Reference('V'),
             CreateValue::Phoneme("i".to_string()),
-            CreateValue::Reference("C".to_string()),
+            CreateValue::Reference('C'),
             CreateValue::Phoneme("r".to_string()),
             CreateValue::Phoneme("rw".to_string())
         ]);
@@ -245,12 +282,12 @@ mod tests {
 
     #[test]
     fn test_new_no_space_mix(){
-        let test_phon: PhoneticReference = "CCrC".into();
+        let test_phon: PhoneticReference = "CCrC".try_into().unwrap();
         let expected = PhoneticReference(vec![
-            CreateValue::Reference("C".to_string()),
-            CreateValue::Reference("C".to_string()),
+            CreateValue::Reference('C'),
+            CreateValue::Reference('C'),
             CreateValue::Phoneme("r".to_string()),
-            CreateValue::Reference("C".to_string())
+            CreateValue::Reference('C')
         ]);
         assert_eq!(test_phon, expected)
     }
@@ -259,35 +296,35 @@ mod tests {
     fn test_basic_gen() {
         let test_phon = LexPhonology{
             groups: HashMap::from([
-                ("C".to_string(),
+                ('C',
                 vec![
                     PhoneticReference(vec![CreateValue::Phoneme("t".to_string())]), 
                     PhoneticReference(vec![CreateValue::Phoneme("r".to_string())])
                 ]),
-                ("V".to_string(), 
+                ('V', 
                 vec![
                     PhoneticReference(vec![CreateValue::Phoneme("u".to_string())]),
                     PhoneticReference(vec![CreateValue::Phoneme("i".to_string())])
                 ]),
-                ("S".to_string(), 
+                ('S', 
                 vec![
                     PhoneticReference(vec![
-                        CreateValue::Reference("C".to_string()), 
-                        CreateValue::Reference("V".to_string())
+                        CreateValue::Reference('C'), 
+                        CreateValue::Reference('V')
                     ]), 
                     PhoneticReference(vec![
-                        CreateValue::Reference("V".to_string()), 
-                        CreateValue::Reference("C".to_string())
+                        CreateValue::Reference('V'), 
+                        CreateValue::Reference('C')
                     ])
                 ])
             ]),
             lexis_types: HashMap::from([
                 ("words".to_string(), 
                 vec![
-                    PhoneticReference(vec![CreateValue::Reference("S".to_string())]), 
+                    PhoneticReference(vec![CreateValue::Reference('S')]), 
                     PhoneticReference(vec![
-                        CreateValue::Reference("S".to_string()), 
-                        CreateValue::Reference("S".to_string()) 
+                        CreateValue::Reference('S'), 
+                        CreateValue::Reference('S') 
                     ])
                 ])
             ]),

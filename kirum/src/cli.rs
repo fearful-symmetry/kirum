@@ -11,6 +11,9 @@ pub struct Args {
     /// Output file; defaults to stdout if unspecified
     #[clap(short, long, value_parser)]
     pub output: Option<String>,
+    #[clap(short, long, default_value_t=false)]
+    /// Do not print any log output
+    pub quiet: bool,
 
     #[clap(subcommand)]
     pub command: Commands
@@ -89,7 +92,7 @@ pub enum SeparateValues {
     Archaic,
 }
 
-#[derive(clap::Subcommand, Clone)]
+#[derive(clap::Subcommand, Clone, PartialEq, PartialOrd)]
 pub enum Format{
      /// Print one word per line
     Line,
@@ -103,5 +106,7 @@ pub enum Format{
         /// Optional rhai scripts for processing template data. See https://docs.rs/handlebars/latest/handlebars/#script-helper
         #[clap(short, long, value_parser)]
         rhai_files: Option<Vec<String>>
-    }
+    },
+    /// Prints a JSON object of the language
+    Json
 }

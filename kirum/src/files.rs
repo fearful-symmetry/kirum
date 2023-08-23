@@ -12,6 +12,7 @@ pub struct Project {
     phonetic_rules: Option<Vec<PathBuf>>
 }
 
+/// renders any templating code that was written into word definitions
 pub fn apply_def_vars(var_file: Option<String>, dict: &mut Vec<Lexis>) -> Result<()> {
     if let Some(vars) = var_file {
         debug!("Applying variables from {}", vars);
@@ -122,7 +123,7 @@ fn add_single_word(tree: &mut LanguageTree, trans_map: &HashMap<String, RawTrans
 pub fn create_phonetics(paths: Vec<PathBuf>) -> Result<LexPhonology>{
     let mut phonetic_set = LexPhonology::default();
     for path in paths{
-        let raw = std::fs::read_to_string(path)?;
+        let raw = std::fs::read_to_string(&path)?;
         let parsed: LexPhonology = serde_json::from_str(&raw)?;
         phonetic_set.groups.extend(parsed.groups);
         phonetic_set.lexis_types.extend(parsed.lexis_types);
@@ -229,12 +230,12 @@ mod tests {
 
         let example = LexPhonology{
             groups: HashMap::from([
-                ("C".into(), vec!["r".into(), "k".into(), "c".into(), "ch".into(), "b".into()]),
-                ("V".into(), vec!["i".into(), "u".into(), "o".into()]),
-                ("S".into(), vec!["CV".into(), "CVC".into(), "VC".into()])
+                ('C', vec!["r".try_into()?, "k".try_into()?, "c".try_into()?, "ch".try_into()?, "b".try_into()?]),
+                ('V', vec!["i".try_into()?, "u".try_into()?, "o".try_into()?]),
+                ('S', vec!["CV".try_into()?, "CVC".try_into()?, "VC".try_into()?])
             ]),
             lexis_types: HashMap::from([
-                ("word".into(), vec!["S".into(), "SuS".into(), "iSSS".into(), "SSSS".into()])
+                ("word".into(), vec!["S".try_into()?, "SuS".try_into()?, "iSSS".try_into()?, "SSSS".try_into()?])
             ])
         };
 
