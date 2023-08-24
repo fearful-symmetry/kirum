@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize};
 use crate::{matching::LexisMatch, kirum::Lexis, lemma::Lemma};
 use log::debug;
 
+/// Defines a series of transforms that are applied to a lexis.
 #[derive(Clone, Default)]
 pub struct Transform {
     pub name: String,
@@ -42,24 +43,37 @@ impl Transform{
 }
 
  
+ /// Defines all the possible transforms that can be applied to a Lexis
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum TransformFunc {
+    /// replaces one specified letter with another
     #[serde(rename="letter_replace")]
     LetterReplace{letter: LetterValues, replace: LetterPlaceType},
+    /// transforms the Lemmma based on an array that can either 
+    /// map a given character in a lemma, or specify a hard-coded character.
+    /// For example, a LetterArray vector of [0 a 1 u 3]
+    /// applied to the letter 'example' would return "eaxum".
     #[serde(rename="letter_array")]
     LetterArray{letters: Vec<LetterArrayValues>},
+    /// Apply a value to the end of a word
     #[serde(rename="postfix")]
     Postfix{value: Lemma},
+    /// Apply a value to the start of a word
     #[serde(rename="prefix")]
     Prefix{value: Lemma},
+    /// Apply no transforms
     #[serde(rename="loanword")]
     Loanword,
+    /// remove the specified letter
     #[serde(rename="letter_remove")]
     LetterRemove{letter: String, position: LetterPlaceType},
+    /// double a given letter
     #[serde(rename="double")]
     Double{letter: String, position: LetterPlaceType},
+    /// remove a doubled letter
     #[serde(rename="dedouble")]
     DeDouble{letter: String, position: LetterPlaceType},
+    /// replace a matching substring
     #[serde(rename="match_replace")]
     MatchReplace{old: Lemma, new: Lemma}
 }
@@ -115,12 +129,14 @@ impl TransformFunc{
 
 }
 
+/// Specifies the old and new letters to replace.
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct LetterValues{
     pub old: String,
     pub new: String,
 }
 
+/// Determines where a letter should be replaced.
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum LetterPlaceType {
     #[serde(rename="first")]

@@ -11,6 +11,7 @@ struct Stats {
     total: usize
 }
 
+/// generate basic human-readable stats
 pub fn gen_stats(tree: LanguageTree) -> String {
     let mut languages: HashMap<String, i64> = HashMap::new();
     let mut types: HashMap<String, i64> = HashMap::new();

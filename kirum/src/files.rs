@@ -120,6 +120,7 @@ fn add_single_word(tree: &mut LanguageTree, trans_map: &HashMap<String, RawTrans
     Ok(())
 }
 
+/// Generate phonology structures from files
 pub fn create_phonetics(paths: Vec<PathBuf>) -> Result<LexPhonology>{
     let mut phonetic_set = LexPhonology::default();
     for path in paths{

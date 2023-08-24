@@ -6,6 +6,12 @@ use log::error;
 
 const WORD_SEP: char = '\u{200B}';
 
+/// Lemma wraps the words of a Kirum language tree in order to deal with the fact that unicode's
+/// concept of a "character" might not be the same as a given language's idea of character.
+/// This way, a language can have letters that are composed of multiple unicode characters,
+/// and Kirum will treat them natively as characters.
+/// This is accomplished by inserting a unicode string separator between a Lemma's characters,
+/// and then walking through the WORD_SEP delimiter value instead of character values.
 #[derive(Clone, Default, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Lemma {
     value: String,
@@ -128,15 +134,16 @@ impl From<Lemma> for Vec<String> {
 
 
 impl Lemma {
-
+    /// returns the length of the lemma
     pub fn len(&self) -> usize {
         self.clone().into_iter().count()
     }
 
+    /// returns true if the lemma is empty
     pub fn is_empty(&self) -> bool{
         self.value.is_empty()
     }
-
+    /// appends a new lemma
     pub fn push(&mut self, pushed: Lemma) {
         if !self.is_empty(){
             let mut vectored: Vec<String> = self.clone().into();
@@ -148,7 +155,7 @@ impl Lemma {
             self.value = pushed.value
         }
     }
-
+    /// treats the given string value as a lemma character, and appends it onto the current lemma
     pub fn push_char(&mut self, pushed: &str) {
         // a bit horrible, but the easiest way to insure we're inserting the separators properly
         if !self.is_empty() {
@@ -235,8 +242,10 @@ impl Lemma {
         self.value = new_lemma.value;
     }
 
-    // TODO: refactor, this is horrible, clones should not be needed
+
+    /// double the selected letter
     pub fn double(&mut self, letter: &str, position: &LetterPlaceType) {
+        // TODO: refactor, this is horrible
         match position {
             LetterPlaceType::All => {
                 let updated: Lemma = self.clone().into_iter().map(|c| if c == letter{format!("{}{}",c,c)}else {c}).collect();
@@ -274,6 +283,7 @@ impl Lemma {
         self.dedouble_sep();
     }
 
+    /// modify a lemma based on the supplied LetterArrayValues transform
     pub fn modify_with_array(&mut self, transform_array: &Vec<LetterArrayValues>) {
         let working = self.clone().chars();
 

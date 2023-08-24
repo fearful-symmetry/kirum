@@ -4,6 +4,7 @@ use handlebars::{Handlebars, Helper, RenderContext, Output, HelperResult, Render
 use libkirum::kirum::Lexis;
 use anyhow::{Result, Context, anyhow};
 
+/// Render a dictionary from a list of words, and a template
 pub fn generate_from_tmpl(rendered_lang: Vec<Lexis>, template_file: String, rhai_files: Option<Vec<String>>) -> Result<String> {
     let mut reg = Handlebars::new();
     reg.register_helper("string_eq", Box::new(string_eq));
@@ -23,6 +24,7 @@ pub fn generate_from_tmpl(rendered_lang: Vec<Lexis>, template_file: String, rhai
    Ok(rendered)
 }
 
+/// a template helper, defines a handlebars function that compares two strings
 fn string_eq<'reg, 'rc>(
     helper: &Helper<'reg, 'rc>,
     r: &'reg Handlebars<'reg>,

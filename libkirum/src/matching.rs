@@ -4,6 +4,7 @@ use crate::lemma::Lemma;
 use crate::word::PartOfSpeech;
 
 
+/// A match value that can be used to evaluate if a given Lexis field matches a predicate.
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub enum Value{
     #[serde(rename="not")]
@@ -34,6 +35,7 @@ impl Value{
     }
 }
 
+/// Defines an equality in a match statement
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 #[serde(untagged)]
 pub enum EqualValue{
@@ -105,6 +107,7 @@ impl PartialEq<Vec<std::string::String>> for ValueMatch{
     }
 }
 
+/// A matching object that can be used to evaluate if the selected predicates match a supplied Lexis
 #[derive(Serialize, Default, Deserialize, Debug, Clone, PartialEq)]
 pub struct LexisMatch{
     pub id: Option<Value>,
@@ -118,6 +121,7 @@ pub struct LexisMatch{
 }
 
 impl LexisMatch {
+    /// determine if the Match object matches the supplied Lexis
     pub fn matches(&self, lex: &Lexis) -> bool{
             self == lex
     }

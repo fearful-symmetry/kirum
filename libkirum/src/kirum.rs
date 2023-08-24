@@ -134,7 +134,7 @@ impl LanguageTree {
     pub fn add_lexis(&mut self, lex: Lexis){
         self.graph.add_node(lex);
     }
-
+    /// Returns true if the language contains a given word
     pub fn contains(&self, lex: &Lexis) -> bool {
         for nx in self.graph.node_indices(){ 
             if &self.graph[nx] == lex {
@@ -145,10 +145,12 @@ impl LanguageTree {
         false
     }
 
+    /// returns the total number of words
     pub fn len(&self) -> usize {
         self.graph.node_count()
     }
 
+    /// returns true if the language tree is empty
     pub fn is_empty(&self) -> bool {
         self.graph.node_count() == 0
 
@@ -199,7 +201,6 @@ impl LanguageTree {
 
     /// the same as connect_etymology, but takes a string ID for the upstream etymon. If no etymon matching the ID could be found, the method returns false
     pub fn connect_etymology_id(&mut self, lex: Lexis, etymon_id: String, trans: Vec<Transform>, agglutination_order: Option<i32>) -> bool{
-        // TODO: this should take both lexii as an ID
         let upstream_lex = self.graph.node_indices().find(|l| self.graph[*l].id == etymon_id);
         match upstream_lex {
             Some(etymon) => {
@@ -306,7 +307,7 @@ impl LanguageTree {
         }
     }
 
-    /// A more sophisticated version of walk_create_derivatives, this will generate a daughter language
+    /// A more sophisticated version of walk_create_derivatives(), this will generate a daughter language
     /// by applying the given transformations to any Lexis that matches the apply_to closure. If a given lexis matches apply_to
     /// but does not match any transforms, it will be added to the daughter language without any transformations.
     /// After a word is generated, the postprocess closure will be called on the lexis before it's added to the language tree.

@@ -3,6 +3,7 @@ use anyhow::{Result, Context, anyhow};
 use libkirum::{transforms::Transform, kirum::Lexis, word::Etymology};
 use crate::{files::read_and_compute, entries, cli::SeparateValues};
 
+/// Create a daughter language from the specified language files
 pub fn daughter(daughter_ety: String, 
     ancestor: String, 
     lang_name: String, 
@@ -68,8 +69,9 @@ pub fn daughter(daughter_ety: String,
         }
 
         Ok(String::new())
-}
+    }
 
+/// groups a set of language values by the type specified in `field`
 fn group_by(field: Option<SeparateValues>, dict: Vec<(Lexis, Etymology)>, default: String) -> HashMap<String, Vec<(Lexis, Etymology)>> {
     let mut files: HashMap<String, Vec<(Lexis, Etymology)>> = HashMap::new();
 

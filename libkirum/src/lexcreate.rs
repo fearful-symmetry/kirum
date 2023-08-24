@@ -3,11 +3,12 @@ use rand::seq::SliceRandom;
 use crate::{lemma::Lemma, errors::{self, PhoneticParsingError}};
 use serde::{Deserialize, Serialize, de::{Visitor, self, Unexpected}};
 
-/// Carries the phonological rules for a word generator.
+/// Carries a set of phonological and letter groupings that taken together, can generate random words
+/// that match the given phonetics
 #[derive(Clone, PartialEq, Serialize, Deserialize, Default, Debug)]
 pub struct LexPhonology {
-    /// May contain any kind of phonetic value, syllables, phonemes, etc
-    /// the keys of the hashmap are referenced in the following lexis_types below.
+    /// May contain a map of any kind of phonetic value, syllables, phonemes, etc.
+    /// The keys of the hashmap are referenced in the following lexis_types below.
     /// When a word is generated, a PhoneticReference from the vector is chosen at random.
     /// Keys must be all uppercase to distinguish them from letter values.
     /// For example:
