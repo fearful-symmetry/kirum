@@ -25,7 +25,7 @@ pub struct TransformGraph {
 }
 
 #[skip_serializing_none]
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug, Default, PartialEq)]
 /// Defines a single lexis entry as created by the user in JSON
 pub struct RawLexicalEntry {
     /// Optional word
@@ -54,7 +54,7 @@ pub struct RawLexicalEntry {
     pub derivatives: Option<Vec<Derivative>>
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 /// The "derivative" field is largely semantic sugar, and allows the user to
 /// define derivative words inside a given lexis entry.
 pub struct Derivative{
@@ -63,7 +63,7 @@ pub struct Derivative{
 }
 
 /// Defines the "base" JSON file for a word tree.
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Default, PartialEq)]
 pub struct WordGraph {
     pub words: HashMap<String, RawLexicalEntry>,
 }

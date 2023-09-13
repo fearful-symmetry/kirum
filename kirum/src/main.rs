@@ -5,6 +5,9 @@ mod tmpl;
 mod stat;
 mod new;
 mod generate;
+mod ingest;
+mod import;
+
 use clap::Parser;
 use entries::create_json_graph;
 use files::{read_and_compute, apply_def_vars};
@@ -47,7 +50,11 @@ fn main() -> Result<()> {
         cli::Commands::Stat { directory } => {
             let computed = read_and_compute(directory)?;
             gen_stats(computed)
-        }
+        },
+        cli::Commands::Ingest {command, directory, out, overrides} => {
+            import::ingest_from_cli(overrides, directory, out, command)?;
+            String::from("Created")
+        },
         cli::Commands::Render{command, directory, variables} =>{
             let computed = read_and_compute(directory)?;
             let mut rendered_dict = computed.to_vec();

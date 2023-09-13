@@ -57,6 +57,37 @@ pub enum Commands{
     Generate {
         #[clap(subcommand)]
         command: Generate
+    },
+
+    /// Create a language tree file from an external source, such as a JSON file or newline-delimited list of words.
+    /// When run, `ingest` will create a file with a separate lexis entry for each specified word.
+    #[clap(verbatim_doc_comment)]
+    Ingest {
+        /// Override a default ingest value that will be applied to all ingested words, specified in key=value form.
+        /// Keys can be any value normally written into a lexis entry in a tree file passed to `render`.
+        #[clap(short, long, value_parser, verbatim_doc_comment)]
+        overrides: Option<Vec<String>>,
+        /// Path to a directory to read in all transform and graph files. Can be used instead of -t or -g
+        #[clap(short, long, value_parser, default_value="./ingested")]
+        directory: String,
+        #[clap(short='f', long, value_parser, default_value="ingested.json")]
+        out: String,
+        #[clap(subcommand)]
+        command: Ingest
+    }
+}
+
+#[derive(clap::Subcommand, Clone)]
+pub enum Ingest {
+    /// Derive a language tree from a formatted JSON file
+    Json{
+        /// JSON file to ingest
+        file: String,
+    },
+    /// Derive a language tree from a newline-delimited list of words
+    Lines {
+        /// a newline-delimited list of words to ingest
+        file: String,
     }
 }
 
@@ -64,7 +95,7 @@ pub enum Commands{
 pub enum Generate{
     /// Generate a daughter language from an existing language in a graph.
     Daughter{
-        // path to a directory to read in all transform and graph files. Can be used instead of -t or -g
+        /// path to a directory to read in all transform and graph files. Can be used instead of -t or -g
         #[clap(short, long, value_parser)]
         directory: Option<String>,
         /// Path to global transforms used for the daughter language; To generate daughter language, each transform with a conditional that evaluates to true will be applied

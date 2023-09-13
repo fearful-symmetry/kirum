@@ -1,4 +1,4 @@
-use std::{path::{PathBuf, Path},  collections::HashMap};
+use std::{path::{PathBuf, Path},  collections::HashMap, fs::File, io::Write};
 use anyhow::{Result, Context, anyhow};
 use libkirum::{kirum::{LanguageTree, Lexis}, transforms::{Transform, TransformFunc}, word::{Etymology, Edge}, lexcreate::LexPhonology};
 use walkdir::{WalkDir, DirEntry};
@@ -208,6 +208,20 @@ pub fn read_and_compute(directory: Option<String>) -> Result<LanguageTree>{
     info!("rendering tree...");
     lang_tree.compute_lexicon();
     Ok(lang_tree)
+}
+
+/// add a file to the existing directory
+pub fn add_tree_file<P: AsRef<Path>>(path: P, name: String, data: WordGraph) -> Result<()> {
+    let write_to = Path::new(path.as_ref()).join("tree").join(name);
+
+    let mut file = File::create(&write_to)
+    .context(format!("error creating file {}", write_to.display()))?;
+
+    let graph_data = serde_json::to_string_pretty(&data)
+            .context("error creating JSON from graph")?;
+
+    write!(file, "{}", graph_data)?;
+    Ok(())
 }
 
 
