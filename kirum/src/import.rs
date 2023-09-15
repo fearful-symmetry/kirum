@@ -1,6 +1,5 @@
 
 use std::path::Path;
-
 use anyhow::{Result, Context};
 use crate::{cli::{Ingest, self}, entries::RawLexicalEntry, ingest::{self, json, lines}, files::add_tree_file, new};
 
@@ -12,10 +11,10 @@ pub fn ingest_from_cli(overrides: Option<Vec<String>>, directory: String, out: S
     };
     let new_tree = match command{
         cli::Ingest::Json { file } => {
-            json::ingest(file, lex_override).context("error parsing json file")?
+            json::ingest(&file, lex_override).context(format!("error parsing json file {}", file))?
         },
         cli::Ingest::Lines { file } => {
-            lines::ingest(file, lex_override).context("error parsing line file")?
+            lines::ingest(&file, lex_override).context(format!("error parsing line file {}", file))?
         }
     };
     // check to see if we're in a new project or not
@@ -25,7 +24,7 @@ pub fn ingest_from_cli(overrides: Option<Vec<String>>, directory: String, out: S
         add_tree_file(directory, out, new_tree).context("error adding file to existing project")?;
     } else {
         info!("creating new project at {}", directory);
-        new::create_new_project(&directory).context("error creating new project")?;
+        new::create_project_directory(&directory).context("error creating new project")?;
         add_tree_file(directory, out, new_tree).context("error adding file to new project")?;
     }
 

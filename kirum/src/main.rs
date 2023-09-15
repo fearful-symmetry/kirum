@@ -53,7 +53,7 @@ fn main() -> Result<()> {
         },
         cli::Commands::Ingest {command, directory, out, overrides} => {
             import::ingest_from_cli(overrides, directory, out, command)?;
-            String::from("Created")
+            String::from("")
         },
         cli::Commands::Render{command, directory, variables} =>{
             let computed = read_and_compute(directory)?;

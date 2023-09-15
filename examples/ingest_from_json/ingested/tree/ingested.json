@@ -1,0 +1,111 @@
+{
+  "words": {
+    "ingest-failing": {
+      "definition": "failing",
+      "etymology": {
+        "etymons": [
+          {
+            "etymon": "ingest-fail"
+          }
+        ]
+      },
+      "archaic": false
+    },
+    "ingest-untwistable": {
+      "definition": "untwistable",
+      "etymology": {
+        "etymons": [
+          {
+            "etymon": "ingest-twistable"
+          }
+        ]
+      },
+      "archaic": false
+    },
+    "ingest-attack": {
+      "definition": "attack",
+      "archaic": false
+    },
+    "ingest-attacking": {
+      "definition": "attacking",
+      "etymology": {
+        "etymons": [
+          {
+            "etymon": "ingest-attack"
+          }
+        ]
+      },
+      "archaic": false
+    },
+    "ingest-grab": {
+      "definition": "grab",
+      "archaic": false
+    },
+    "ingest-retwistable": {
+      "definition": "retwistable",
+      "etymology": {
+        "etymons": [
+          {
+            "etymon": "ingest-twistable"
+          }
+        ]
+      },
+      "archaic": false
+    },
+    "ingest-twist": {
+      "definition": "twist",
+      "archaic": false
+    },
+    "ingest-failure": {
+      "definition": "failure",
+      "etymology": {
+        "etymons": [
+          {
+            "etymon": "ingest-fail"
+          }
+        ]
+      },
+      "archaic": false
+    },
+    "ingest-attacked": {
+      "definition": "attacked",
+      "etymology": {
+        "etymons": [
+          {
+            "etymon": "ingest-attack"
+          }
+        ]
+      },
+      "archaic": false
+    },
+    "ingest-twistable": {
+      "definition": "twistable",
+      "etymology": {
+        "etymons": [
+          {
+            "etymon": "ingest-twist",
+            "transforms": [
+              "capability"
+            ]
+          }
+        ]
+      },
+      "archaic": false
+    },
+    "ingest-fail": {
+      "definition": "fail",
+      "archaic": false
+    },
+    "ingest-unretwistable": {
+      "definition": "unretwistable",
+      "etymology": {
+        "etymons": [
+          {
+            "etymon": "ingest-retwistable"
+          }
+        ]
+      },
+      "archaic": false
+    }
+  }
+}

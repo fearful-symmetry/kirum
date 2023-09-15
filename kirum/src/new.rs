@@ -100,9 +100,9 @@ pub fn create_new_project(name: &str) -> Result<()> {
     let name_path: PathBuf = name.parse()?;
     let file_name = name_path.file_name()
     .ok_or_else(|| anyhow!("could not extract final path from {}", name_path.display()))?.to_string_lossy();
-    write_json(&file_name, &mut tree_path, graph_data).context(format!("error creating {}", file_name))?;
-    write_json("ety", &mut ety_path, trans_data)?;
-    write_json("rules", &mut phonetic_path, phonetic_data)?;
+    write_json(&file_name, &mut tree_path, graph_data).context(format!("error writing {}", file_name))?;
+    write_json("ety", &mut ety_path, trans_data).context("error writing ety file")?;
+    write_json("rules", &mut phonetic_path, phonetic_data).context("error writing rules file")?;
 
 
     Ok(())
