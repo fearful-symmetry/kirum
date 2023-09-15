@@ -47,6 +47,6 @@ jobs:
       run: cargo run -- render -d examples/phonetic_rules json
 
     - name: Ingest
-      run: cargo run -- ingest -d examples/ingest_from_json/empty_language -o generate=word -o language="example" json input.json
+      run: cargo run -- ingest -d examples/ingest_from_json/empty_language -o generate=word -o language="example" json examples/ingest_from_json/input.json
     - name: Post-ingest render 
       run: cargo run -- render -d examples/ingest_from_json/empty_language line

@@ -34,6 +34,7 @@ The [`examples`](examples) directory has a number of projects:
 - [templates](examples/templates/) - Using a handlebars template to output an asciidoc dictionary.
 - [conditionals](examples/conditionals/) - Using conditional statements in transforms.
 - [phonetic_rules](examples/phonetic_rules/) - Using Kirum's phonetic rulesets to generate words.
+- [ingest_from_json](examples/ingest_from_json/) - Ingesting words into a language project from a JSON or newline-delimited text file.
 
 
 ## The structure of a Kirum project
