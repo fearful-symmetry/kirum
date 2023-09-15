@@ -5,7 +5,7 @@ use serde::{Serialize, Deserialize};
 use serde_with::skip_serializing_none;
 
 #[skip_serializing_none]
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug, Default)]
 /// Defines the transform structure as created by the user in JSON.
 pub struct RawTransform{
     pub transforms: Vec<TransformFunc>,
@@ -19,7 +19,7 @@ impl From<RawTransform> for Transform{
     }
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Default)]
 pub struct TransformGraph {
     pub transforms: HashMap<String, RawTransform>
 }
@@ -48,7 +48,7 @@ pub struct RawLexicalEntry {
     /// Optional user tagging
     pub archaic: bool,
     pub tags: Option<Vec<String>>,
-    /// A tag that tells Kirum to generate the word based on the phonetic ruleset specified by the tag
+    /// A tag that tells Kirum to generate the word based on the phonetic rule set specified by the tag
     pub generate: Option<String>,
     /// Words that will be added as a derivative of the enclosing Lexis; any value not specified will be taken from the enclosing entry.
     pub derivatives: Option<Vec<Derivative>>

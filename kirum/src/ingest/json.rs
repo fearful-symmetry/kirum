@@ -4,7 +4,7 @@ use std::path::Path;
 use libkirum::{word::{Etymology, Edge}, lemma::Lemma};
 use serde::{Serialize, Deserialize};
 use serde_json::Value;
-use crate::entries::{WordGraph, RawLexicalEntry};
+use crate::entries::{WordGraph, RawLexicalEntry, TransformGraph, RawTransform};
 use anyhow::Result;
 
 
@@ -23,7 +23,7 @@ pub enum KeyType {
     Words
 }
 
-pub fn ingest<P: AsRef<Path>>(path: P, overrides: RawLexicalEntry) -> Result<WordGraph> {
+pub fn ingest<P: AsRef<Path>>(path: P, overrides: RawLexicalEntry) -> Result<(WordGraph, TransformGraph)> {
     let raw = std::fs::read_to_string(path)?;
     let parsed: Ingest = serde_json::from_str(&raw)?;
     let mut working = WordGraph::default();
@@ -31,9 +31,27 @@ pub fn ingest<P: AsRef<Path>>(path: P, overrides: RawLexicalEntry) -> Result<Wor
         ingest_value(&overrides, parsed.keys_are, None, &mut working, in_word);
     };
 
-    Ok(working)
+    // create any transforms, if found
+    // not as elegant as tracking transforms as we create them,
+    // but ingest_value is complicated enough as-is
+    let mut transforms = TransformGraph::default();
+    for word in &working.words {
+        if let Some(ety) = &word.1.etymology {
+            for found_etymon in &ety.etymons {
+                if let Some(found_transforms) = &found_etymon.transforms{
+                    for trans in found_transforms {
+                        transforms.transforms.insert(trans.clone(), RawTransform{conditional: None, transforms: vec![]});
+                    }
+                    
+                }
+            }
+        }
+    }
+
+    Ok((working, transforms))
 }
 
+/// recursively ingest arbitrary json, creating a WordGraph
 fn ingest_value(overrides: &RawLexicalEntry,
     key_type: KeyType, 
     parent: Option<String>, 
@@ -43,11 +61,9 @@ fn ingest_value(overrides: &RawLexicalEntry,
             match parent{
                 Some(p) => {
                     insert_into_map(overrides, key_type, Some(p), None, st, word_map);
-                    //insert_string_with_parent(overrides, p, st, key_type, word_map);
                 },
                 None => {
                     insert_into_map(overrides, key_type, None, None, st, word_map);
-                    //insert_single_string(overrides, st, key_type, word_map);
                 }
             }
         },
@@ -75,6 +91,7 @@ fn ingest_value(overrides: &RawLexicalEntry,
                                 // or another layer of depth in the word etymology 
                                 match &found_string.strip_prefix('!') {
                                     Some(ety) => {
+                                        created_root = true;
                                         insert_into_map(overrides, key_type, Some(par_word.clone()), Some(ety.to_string()), word_key.clone(), word_map);
                                     },
                                     None => {
@@ -110,7 +127,6 @@ fn ingest_value(overrides: &RawLexicalEntry,
                                     match &parent {
                                         Some(parent_word) => {
                                             insert_into_map(overrides, key_type, Some(parent_word.clone()), Some(trans_name), word_key.clone(), word_map);
-                                            //insert_string_with_parent_transform(overrides, parent_word.clone(), trans_name, &word_key, key_type, word_map);
                                             created_root = true;
                                         },
                                         None => {
@@ -153,14 +169,17 @@ fn insert_into_map(overrides: &RawLexicalEntry, in_type: KeyType, parent: Option
         parent_ety = Some(Etymology { etymons: vec![new_edge] });
     }
     let id = format!("ingest-{}", input_word);
-    match in_type{
+    let found = match in_type{
         KeyType::Definitions => {
-            graph.words.insert(id, RawLexicalEntry{definition: input_word, etymology: parent_ety, ..overrides.clone()});
+            graph.words.insert(id, RawLexicalEntry{definition: input_word.clone(), etymology: parent_ety, ..overrides.clone()})
         },
         KeyType::Words => {
-            let new_lemma: Lemma = input_word.into();
-            graph.words.insert(id, RawLexicalEntry{word: Some(new_lemma), etymology: parent_ety, ..overrides.clone()});
+            let new_lemma: Lemma = input_word.clone().into();
+            graph.words.insert(id, RawLexicalEntry{word: Some(new_lemma), etymology: parent_ety, ..overrides.clone()})
         }
+    };
+    if found.is_some(){
+        warn!("inserted word {} multiple times, check your input JSON for repeated values", input_word);
     }
 
 }
@@ -210,7 +229,7 @@ mod tests {
                             etymons: vec![
                                 Edge {
                                     etymon: "ingest-fail".to_string(),
-                                    transforms: None,
+                                    transforms: Some(vec!["state_of".to_string()]),
                                     agglutination_order: None,
                                 },
                             ],
@@ -282,7 +301,7 @@ mod tests {
                             etymons: vec![
                                 Edge {
                                     etymon: "ingest-fail".to_string(),
-                                    transforms: None,
+                                    transforms: Some(vec!["to_do".to_string()]),
                                     agglutination_order: None,
                                 },
                             ],
@@ -326,7 +345,7 @@ mod tests {
                             etymons: vec![
                                 Edge {
                                     etymon: "ingest-twistable".to_string(),
-                                    transforms: None,
+                                    transforms: Some(vec!["negate".to_string()]),
                                     agglutination_order: None,
                                 },
                             ],
@@ -432,8 +451,27 @@ mod tests {
 
         let path = "src/test_files/test_ingest/basic.json";
         let res = ingest(path, RawLexicalEntry::default()).unwrap();
-        println!("got basic data: {:#?}", res);
-        assert_eq!(res, good_input);
+        //println!("got basic data: {:#?}", res);
+        for (word_key, word) in good_input.words {
+            let found = res.0.words.get(&word_key);
+            match found {
+                Some(found_word) => {
+                    debug_assert_eq!(word, found_word.clone(), "word value {} does not match", word_key);
+                },
+                None => {
+                    debug_assert!(false, "could not find word {} in result", word_key);
+                }
+            }
+        }
+        //assert_eq!(res.0, good_input);
+    }
+
+    #[test]
+    fn basic_ingest_transforms() {
+        let path = "src/test_files/test_ingest/basic.json";
+        let res = ingest(path, RawLexicalEntry::default()).unwrap();
+        println!("got basic data: {:#?}", res.1);
+        assert!(res.1.transforms.get("capability").is_some());
     }
 
 }

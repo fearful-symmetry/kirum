@@ -57,9 +57,10 @@ fn main() -> Result<()> {
         },
         cli::Commands::Render{command, directory, variables} =>{
             let computed = read_and_compute(directory)?;
+            debug!("computed {} raw entries", computed.len());
             let mut rendered_dict = computed.to_vec();
             apply_def_vars(variables, &mut rendered_dict)?;
-
+            debug!("rendered lexicon of {} lemmas", rendered_dict.len());
             match command{
                 cli::Format::Line =>{
                     let mut acc = String::new();

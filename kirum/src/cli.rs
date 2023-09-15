@@ -64,7 +64,7 @@ pub enum Commands{
     #[clap(verbatim_doc_comment)]
     Ingest {
         /// Override a default ingest value that will be applied to all ingested words, specified in key=value form.
-        /// Keys can be any value normally written into a lexis entry in a tree file passed to `render`.
+        /// Possible key values: word, type, language, pos, archaic, tag, generate
         #[clap(short, long, value_parser, verbatim_doc_comment)]
         overrides: Option<Vec<String>>,
         /// Path to a directory to read in all transform and graph files. Can be used instead of -t or -g

@@ -1,0 +1,24 @@
+{
+  "transforms": {
+    "to_do": {
+      "transforms": [
+        {"prefix": {"value": "su"}} 
+      ]
+    },
+    "negate": {
+      "transforms": [
+        {"postfix": {"value": "y"}} 
+      ]
+    },
+    "capability": {
+      "transforms": [
+        {"prefix": {"value": "yl"}} 
+      ]
+    },
+    "state_of": {
+      "transforms": [
+        {"prefix": {"value": "ah-"}} 
+      ]
+    }
+  }
+}

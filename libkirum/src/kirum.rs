@@ -33,7 +33,7 @@ pub struct Lexis {
     //#[serde(skip)]
     pub tags: Vec<String>,
     /// Optional field that can be used to randomly generate a word value if none exists, separate from any etymology.
-    /// If the given word has not etymology, this value takes prescience.
+    /// If the given word has no etymology, this value takes prescience.
     /// The string value is used to generate a word based on the underlying phonology rules supplied to the TreeEtymology structure.
     pub word_create: Option<String>
 }
