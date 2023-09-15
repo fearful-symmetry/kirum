@@ -1,7 +1,18 @@
 use std::{path::PathBuf, io::Write, collections::HashMap, fs::{self, File}};
 use libkirum::{transforms::TransformFunc, word::{Etymology, Edge}, lexcreate::LexPhonology};
 use crate::entries::{RawTransform, TransformGraph, RawLexicalEntry, Derivative, WordGraph};
-use anyhow::{Result, Context};
+use anyhow::{Result, Context, anyhow};
+
+pub fn create_project_directory(name: &str) -> Result<()>{
+    let base = PathBuf::from(name);
+    let ety_path = base.join("etymology");
+    let tree_path = base.join("tree");
+    let phonetic_path = base.join("phonetics");
+    fs::create_dir_all(ety_path)?;
+    fs::create_dir_all(tree_path)?;
+    fs::create_dir_all(phonetic_path)?;
+    Ok(())
+}
 
 /// Helper function. Create a new project, and write it out.
 pub fn create_new_project(name: &str) -> Result<()> {
@@ -9,9 +20,7 @@ pub fn create_new_project(name: &str) -> Result<()> {
     let mut ety_path = base.join("etymology");
     let mut tree_path = base.join("tree");
     let mut phonetic_path = base.join("phonetics");
-    fs::create_dir_all(&ety_path)?;
-    fs::create_dir_all(&tree_path)?;
-    fs::create_dir_all(&phonetic_path)?;
+    create_project_directory(name).context("error creating project directory")?;
 
     let mut transform_map: HashMap<String, RawTransform> = HashMap::new();
     transform_map.insert("of-from-latin".into(), RawTransform { 
@@ -88,9 +97,12 @@ pub fn create_new_project(name: &str) -> Result<()> {
     let graph_data = serde_json::to_string_pretty(&example_tree)?;
     let trans_data = serde_json::to_string_pretty(&example_transforms)?;
 
-    write_json(name, &mut tree_path, graph_data)?;
-    write_json("ety", &mut ety_path, trans_data)?;
-    write_json("rules", &mut phonetic_path, phonetic_data)?;
+    let name_path: PathBuf = name.parse()?;
+    let file_name = name_path.file_name()
+    .ok_or_else(|| anyhow!("could not extract final path from {}", name_path.display()))?.to_string_lossy();
+    write_json(&file_name, &mut tree_path, graph_data).context(format!("error writing {}", file_name))?;
+    write_json("ety", &mut ety_path, trans_data).context("error writing ety file")?;
+    write_json("rules", &mut phonetic_path, phonetic_data).context("error writing rules file")?;
 
 
     Ok(())

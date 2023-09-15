@@ -42,3 +42,11 @@ jobs:
       
     - name: templates
       run: cargo run -- -o rendered.asciidoc render -d examples/templates template -t examples/templates/tmpl/lexicon.hbs -r examples/templates/tmpl/shorten_pos.rhai
+
+    - name: Phonetic generation render
+      run: cargo run -- render -d examples/phonetic_rules json
+
+    - name: Ingest
+      run: cargo run -- ingest -d examples/ingest_from_json/empty_language -o generate=word -o language="example" json examples/ingest_from_json/input.json
+    - name: Post-ingest render 
+      run: cargo run -- render -d examples/ingest_from_json/empty_language line

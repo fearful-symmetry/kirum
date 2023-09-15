@@ -5,7 +5,7 @@ use serde::{Serialize, Deserialize};
 use serde_with::skip_serializing_none;
 
 #[skip_serializing_none]
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug, Default)]
 /// Defines the transform structure as created by the user in JSON.
 pub struct RawTransform{
     pub transforms: Vec<TransformFunc>,
@@ -19,13 +19,13 @@ impl From<RawTransform> for Transform{
     }
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Default)]
 pub struct TransformGraph {
     pub transforms: HashMap<String, RawTransform>
 }
 
 #[skip_serializing_none]
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug, Default, PartialEq)]
 /// Defines a single lexis entry as created by the user in JSON
 pub struct RawLexicalEntry {
     /// Optional word
@@ -48,13 +48,13 @@ pub struct RawLexicalEntry {
     /// Optional user tagging
     pub archaic: bool,
     pub tags: Option<Vec<String>>,
-    /// A tag that tells Kirum to generate the word based on the phonetic ruleset specified by the tag
+    /// A tag that tells Kirum to generate the word based on the phonetic rule set specified by the tag
     pub generate: Option<String>,
     /// Words that will be added as a derivative of the enclosing Lexis; any value not specified will be taken from the enclosing entry.
     pub derivatives: Option<Vec<Derivative>>
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 /// The "derivative" field is largely semantic sugar, and allows the user to
 /// define derivative words inside a given lexis entry.
 pub struct Derivative{
@@ -63,7 +63,7 @@ pub struct Derivative{
 }
 
 /// Defines the "base" JSON file for a word tree.
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Default, PartialEq)]
 pub struct WordGraph {
     pub words: HashMap<String, RawLexicalEntry>,
 }

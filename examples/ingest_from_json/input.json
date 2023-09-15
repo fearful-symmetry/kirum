@@ -1,0 +1,24 @@
+{
+    "keys_are": "definitions",
+    "words": [
+        "grab",
+        {
+            "fail": {
+                "failing": "!to_do",
+                "failure": "!state_of"
+            }
+        },
+        {
+            "attack": ["attacking", "attacked"]
+        },
+        {
+            "twist": {
+                "twistable": {
+                    "untwistable": "!negate",
+                    "!etymology": "capability",
+                    "retwistable": "unretwistable"
+                }
+            }
+        }
+    ]
+}

@@ -1,15 +1,16 @@
-use std::{path::{PathBuf, Path},  collections::HashMap};
+use std::{path::{PathBuf, Path},  collections::HashMap, fs::File, io::Write};
 use anyhow::{Result, Context, anyhow};
 use libkirum::{kirum::{LanguageTree, Lexis}, transforms::{Transform, TransformFunc}, word::{Etymology, Edge}, lexcreate::LexPhonology};
+use serde::Serialize;
 use walkdir::{WalkDir, DirEntry};
 use crate::entries::{RawTransform, RawLexicalEntry, TransformGraph, WordGraph};
 use handlebars::Handlebars;
 
 /// contains path data for everything needed for a project
 pub struct Project {
-    graphs: Vec<PathBuf>,
-    transforms: Vec<PathBuf>,
-    phonetic_rules: Option<Vec<PathBuf>>
+    pub graphs: Vec<PathBuf>,
+    pub transforms: Vec<PathBuf>,
+    pub phonetic_rules: Option<Vec<PathBuf>>
 }
 
 /// renders any templating code that was written into word definitions
@@ -35,16 +36,33 @@ pub fn read_from_files(proj: Project) -> Result<LanguageTree>{
     //first merge all the files into one giant hashmap for the transforms and graph
     // because we later need to get random words from the map to construct the etymology from the rawLex "etymology" fields,
     // the giant hashmaps of everything need to be made first
-    let mut transform_map: HashMap<String, RawTransform> = HashMap::new();
-    for trans_file in &proj.transforms {
-        let trans_raw = std::fs::read_to_string(trans_file.clone()).context(format!("error reading etymology file {}", trans_file.display()))?;
-        let transforms: TransformGraph = serde_json::from_str(&trans_raw).context(format!("error parsing etymology file {}", trans_file.display()))?;
-        debug!("read in transform file: {}", trans_file.display());
-        transform_map.extend(transforms.transforms);
+    let transform_map = read_transform_files(&proj.transforms)?;
+
+    let language_map = read_tree_files(&proj.graphs)?;
+    
+    if language_map.is_empty(){
+        return Err(anyhow!("specified language tree does not contain any data. Tree files used: {:?}", proj.graphs));
     }
 
+    let mut tree = LanguageTree::new();
+    if let Some(phonetic_files) = proj.phonetic_rules{
+        tree.word_creator_phonology = create_phonetics(phonetic_files)?;
+    }
+
+
+
+    for (lex_name, node) in &language_map{
+        debug!("creating node entry {}", lex_name);
+        let node_lex: Lexis = Lexis { id: lex_name.to_string(), ..node.clone().into() };
+        add_single_word(&mut tree, &transform_map, &language_map, &node_lex, &node.etymology)?; 
+    }
+
+    Ok(tree)
+}
+
+pub fn read_tree_files(files: &Vec<PathBuf>) -> Result<HashMap<String, RawLexicalEntry>> {
     let mut language_map: HashMap<String, RawLexicalEntry> = HashMap::new();
-    for lang_file in &proj.graphs{
+    for lang_file in files{
         let graph_raw = std::fs::read_to_string(lang_file.clone()).context(format!("error reading tree file {}", lang_file.display()))?;
         let raw_graph: WordGraph = serde_json::from_str(&graph_raw).context(format!("error reading tree file {}", lang_file.display()))?;
         debug!("read in language file: {}", lang_file.display());
@@ -73,25 +91,20 @@ pub fn read_from_files(proj: Project) -> Result<LanguageTree>{
             }
         }
     }
-    
-    if language_map.is_empty(){
-        return Err(anyhow!("specified language tree does not contain any data. Tree files used: {:?}", proj.graphs));
-    }
 
-    let mut tree = LanguageTree::new();
-    if let Some(phonetic_files) = proj.phonetic_rules{
-        tree.word_creator_phonology = create_phonetics(phonetic_files)?;
-    }
+    Ok(language_map)
+}
 
+pub fn read_transform_files(files: &Vec<PathBuf>) -> Result<HashMap<String, RawTransform>> {
+    let mut transform_map: HashMap<String, RawTransform> = HashMap::new();
+    for trans_file in files {
+        let trans_raw = std::fs::read_to_string(trans_file.clone()).context(format!("error reading etymology file {}", trans_file.display()))?;
+        let transforms: TransformGraph = serde_json::from_str(&trans_raw).context(format!("error parsing etymology file {}", trans_file.display()))?;
+        debug!("read in transform file: {}", trans_file.display());
+        transform_map.extend(transforms.transforms);
+    };
 
-
-    for (lex_name, node) in &language_map{
-        debug!("creating node entry {}", lex_name);
-        let node_lex: Lexis = Lexis { id: lex_name.to_string(), ..node.clone().into() };
-        add_single_word(&mut tree, &transform_map, &language_map, &node_lex, &node.etymology)?; 
-    }
-
-    Ok(tree)
+    Ok(transform_map)
 }
 
 /// Add a single word entry to the tree, including any derivative words
@@ -146,8 +159,8 @@ pub fn find_transforms(raw: &Vec<String>, trans_tree: &HashMap<String, RawTransf
 }
 
 /// Traverse a directory, returning a list of transforms and graph files
-pub fn handle_directory(path: String) -> Result<Project> {
-    let lang_dir = Path::new(&path);
+pub fn handle_directory(path: &str) -> Result<Project> {
+    let lang_dir = Path::new(path);
     let lang_graph_dir = lang_dir.join("tree");
     let lang_transform_dir = lang_dir.join("etymology");
     let phonetics_path = lang_dir.join("phonetics");
@@ -199,7 +212,7 @@ fn check_path(dir: &DirEntry) -> bool {
 /// deals with the logic of listed files versus a specified directory
 pub fn read_and_compute(directory: Option<String>) -> Result<LanguageTree>{
     let new_project: Project = if directory.is_some(){
-        handle_directory(directory.unwrap())?
+        handle_directory(&directory.unwrap())?
     } else {
         return Err(anyhow!("must specify either a graph and transform file, or a directory"));
     }; 
@@ -210,8 +223,34 @@ pub fn read_and_compute(directory: Option<String>) -> Result<LanguageTree>{
     Ok(lang_tree)
 }
 
+/// add a tree file to the existing directory
+pub fn add_tree_file<P: AsRef<Path>>(path: P, name: &str, data: WordGraph) -> Result<()> {
+    let write_to = Path::new(path.as_ref()).join("tree").join(name);
+    add_file(&write_to, data).context(format!("error adding file {} to project", write_to.display()))?;
+    Ok(())
+}
 
+pub fn add_ety_file<P: AsRef<Path>>(path: P, name: &str, data: TransformGraph) -> Result<()> {
+    let write_to = Path::new(path.as_ref()).join("etymology").join(name);
+    add_file(&write_to, data).context(format!("error adding file {} to project", write_to.display()))?;
+    Ok(())
+}
 
+/// add a file to the project at the specified path
+pub fn add_file<P, S>(path: P, data: S) -> Result<()>
+where
+    P: AsRef<Path> + std::fmt::Debug,
+    S: Sized + Serialize
+    {
+        let mut file = File::create(&path)
+        .context(format!("error creating file {:?}", path))?;
+    
+        let graph_data = serde_json::to_string_pretty(&data)
+                .context("error creating JSON from graph")?;
+    
+        write!(file, "{}", graph_data)?;
+        Ok(())
+}
 
 #[cfg(test)]
 mod tests {
@@ -267,7 +306,7 @@ mod tests {
     }
 
     #[test]
-    fn test_def_tmpls() -> Result<()> {
+    fn test_def_templates() -> Result<()> {
         let vars = Some(String::from("src/test_files/test_tmpl_vars.toml"));
         let example_lex = Lexis{definition: String::from("a word in {{ln}}"), ..Default::default()};
         let mut dict = vec![example_lex];

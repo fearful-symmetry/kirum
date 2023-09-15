@@ -16,3 +16,9 @@ pub struct PhoneticParsingError {
     pub msg: &'static str,
     pub found: String
 }
+
+#[derive(thiserror::Error, Debug)]
+#[error("invalid part of speech value {found}")]
+pub struct POSFromError {
+    pub found: String
+}
