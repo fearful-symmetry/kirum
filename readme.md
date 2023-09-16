@@ -8,6 +8,15 @@ The [bureaucracy](examples/bureaucracy/) example demonstrates this by generating
 
 Kirum is a work in progress, and should be considered alpha software.
 
+## Installing
+
+If you haven't already, install [rust](https://rustup.rs/) and [git](https://github.com/git-guides/install-git). Once you've cloned the repo, install with
+```bash
+cd kirum/
+cargo install --path=./kirum
+
+```
+
 ## Getting Started
 
 To create your first project, simply run `kirum new [NAME]`:
