@@ -37,7 +37,7 @@ pub fn ingest_from_cli(overrides: Option<Vec<String>>, directory: String, out: S
                 new_trans.transforms.remove(&name);
             }
         }
-        if new_trans.transforms.len() > 0 {
+        if !new_trans.transforms.is_empty() {
             add_ety_file(directory, &out, new_trans).context("error adding ingested etymology file")?;
         } else {
             info!("no new transforms found.")

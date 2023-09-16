@@ -8,7 +8,7 @@ use std::str::FromStr;
 pub fn parse(list: Vec<String>) -> Result<RawLexicalEntry> {
     let mut working = RawLexicalEntry::default();
     for val in list{
-        let raw_values: Vec<&str> = val.split("=").collect();
+        let raw_values: Vec<&str> = val.split('=').collect();
         if raw_values.len() < 2 {
             return Err(anyhow!("could not parse {}, expecting key=value", val));
         }

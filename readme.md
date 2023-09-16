@@ -3,9 +3,10 @@
 ![ci](https://github.com/fearful-symmetry/kirum/actions/workflows/rust.yml/badge.svg)
 
 Kirum (from Standard Babylonian _Kirûm_ meaning _garden_ or _orchard_) is a conlang CLI utility and library.
-Unlike many conlang tools, which allow you to generate lexicons based on phonetic rules, Kirum generates entire languages and language families based on specified etymology. Kirum also takes a "pets not cattle" approach to conlang tooling, allowing users to store and graph the entire history of a language family, down to individual morphemes.
+Unlike many conlang tools, which allow you to generate lexicons based on phonetic rules, Kirum generates entire languages and language families based on specified etymology. Kirum started as a way to enable easy iteration on a conlang; instead of a blind find-and-replace operation or carefully scrolling through documentation, phonology and conjugation rules can be changed in a single place and then "trickled down" via etymology rules.
+The [bureaucracy](examples/bureaucracy/) example demonstrates this by generating the modern English word _bureaucracy_ using only the Latin word _burra_ and the Greek root _kratia_.
 
-Kirum is a work in progress, and should be considered alpha software. Major features are currently planned, including IPA support.
+Kirum is a work in progress, and should be considered alpha software.
 
 ## Getting Started
 
@@ -50,7 +51,7 @@ A Tree file is a JSON object of `Lexis` objects, a maximal example of which is p
       "type": "word", // A user-supplied tag. Can be any value.
       "word": "exemplum", // The actual lexical word. If not supplied, kirum will attempt to derive it based on etymology
       "language": "Latin", // Can be any user-supplied value
-      "generate": "word_rules" // An optional tag that will generate the word from phonetic rules, see examples/phonetic_rules
+      "generate": "word_rules", // An optional tag that will generate the word from phonetic rules, see examples/phonetic_rules
       "definition": "an instance, model, example",
       "part_of_speech": "noun", // Optional. Must be one of Noun, verb, or adjective.
       "etymology": {
