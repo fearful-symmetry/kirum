@@ -1,16 +1,17 @@
 use std::{path::{PathBuf, Path},  collections::HashMap, fs::File, io::Write};
 use anyhow::{Result, Context, anyhow};
-use libkirum::{kirum::{LanguageTree, Lexis}, transforms::{Transform, TransformFunc}, word::{Etymology, Edge}, lexcreate::LexPhonology};
+use libkirum::{kirum::{LanguageTree, Lexis}, transforms::{Transform, TransformFunc, GlobalTransform}, word::{Etymology, Edge}, lexcreate::LexPhonology};
 use serde::Serialize;
 use walkdir::{WalkDir, DirEntry};
-use crate::entries::{RawTransform, RawLexicalEntry, TransformGraph, WordGraph};
+use crate::{entries::{RawTransform, RawLexicalEntry, TransformGraph, WordGraph}, global::{RawGlobalTransform, Global}};
 use handlebars::Handlebars;
 
 /// contains path data for everything needed for a project
 pub struct Project {
     pub graphs: Vec<PathBuf>,
     pub transforms: Vec<PathBuf>,
-    pub phonetic_rules: Option<Vec<PathBuf>>
+    pub phonetic_rules: Option<Vec<PathBuf>>,
+    pub globals: Option<PathBuf>
 }
 
 /// renders any templating code that was written into word definitions
@@ -49,12 +50,23 @@ pub fn read_from_files(proj: Project) -> Result<LanguageTree>{
         tree.word_creator_phonology = create_phonetics(phonetic_files)?;
     }
 
-
-
     for (lex_name, node) in &language_map{
         debug!("creating node entry {}", lex_name);
         let node_lex: Lexis = Lexis { id: lex_name.to_string(), ..node.clone().into() };
         add_single_word(&mut tree, &transform_map, &language_map, &node_lex, &node.etymology)?; 
+    }
+
+    if let Some(globals) = proj.globals  {
+        let raw = std::fs::read_to_string(globals)?;
+        let global_trans: Global = serde_json::from_str(&raw)?;
+        if let Some(raw_trans) = global_trans.transforms {
+            let mut final_trans: Vec<GlobalTransform> = Vec::new();
+            for trans in raw_trans {
+                final_trans.push(trans.into())
+            }
+            tree.global_transforms = Some(final_trans);
+        }
+
     }
 
     Ok(tree)
@@ -164,6 +176,7 @@ pub fn handle_directory(path: &str) -> Result<Project> {
     let lang_graph_dir = lang_dir.join("tree");
     let lang_transform_dir = lang_dir.join("etymology");
     let phonetics_path = lang_dir.join("phonetics");
+    let globals_file = lang_dir.join("globals.json");
 
     debug!("using tree path: {}", lang_graph_dir.display());
     let  graphs: Vec<PathBuf> = read_subdir_create_list(lang_graph_dir)?;
@@ -178,11 +191,18 @@ pub fn handle_directory(path: &str) -> Result<Project> {
     } else {
         None
     };
+
+    let global_trans: Option<PathBuf> = if globals_file.exists() {
+        Some(globals_file)
+    } else {
+        None
+    };
     
 
     Ok(Project { graphs, 
         transforms, 
-        phonetic_rules})
+        phonetic_rules,
+        globals: global_trans})
 }
 
 fn read_subdir_create_list(path: PathBuf) -> Result<Vec<PathBuf>>{

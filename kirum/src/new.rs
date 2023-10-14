@@ -1,6 +1,6 @@
 use std::{path::PathBuf, io::Write, collections::HashMap, fs::{self, File}};
 use libkirum::{transforms::TransformFunc, word::{Etymology, Edge}, lexcreate::LexPhonology};
-use crate::entries::{RawTransform, TransformGraph, RawLexicalEntry, Derivative, WordGraph};
+use crate::{entries::{RawTransform, TransformGraph, RawLexicalEntry, Derivative, WordGraph}, global::Global};
 use anyhow::{Result, Context, anyhow};
 
 pub fn create_project_directory(name: &str) -> Result<()>{
@@ -104,7 +104,11 @@ pub fn create_new_project(name: &str) -> Result<()> {
     write_json("ety", &mut ety_path, trans_data).context("error writing ety file")?;
     write_json("rules", &mut phonetic_path, phonetic_data).context("error writing rules file")?;
 
-
+    let base_globals = Global{transforms: None};
+    let globals_data = serde_json::to_string_pretty(&base_globals)?;
+    let mut globals_file = File::create("globals.json").context("could not create globals file")?;
+    write!(globals_file, "{}", globals_data).context("error writing globals file")?;
+ 
     Ok(())
 }
 
@@ -115,7 +119,7 @@ fn write_json(subpath: &str, base_path: &mut PathBuf, data: String) -> Result<()
     .context(format!("could not create  json file {} {}", subpath, base_path.display()))?;
 
     write!(phonetics_file, "{}", data)
-    .context("error writing phonetics file".to_string())?;
+    .context("error writing phonetics file")?;
 
     Ok(())
 }
