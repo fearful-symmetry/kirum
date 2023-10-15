@@ -12,7 +12,6 @@ pub struct RawTransform{
     pub conditional: Option<LexisMatch>
 }
 
-
 impl From<RawTransform> for Transform{
     fn from(value: RawTransform) -> Self {
         Transform { name: String::new(), lex_match: value.conditional, transforms: value.transforms}

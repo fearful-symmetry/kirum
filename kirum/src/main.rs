@@ -7,6 +7,7 @@ mod new;
 mod generate;
 mod ingest;
 mod import;
+mod global;
 
 use clap::Parser;
 use entries::create_json_graph;

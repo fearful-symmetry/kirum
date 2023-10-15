@@ -1,6 +1,41 @@
 use serde::{Deserialize, Serialize};
 use crate::{matching::LexisMatch, kirum::Lexis, lemma::Lemma};
-use log::debug;
+use log::{debug, trace};
+
+/// Specifies a transform at a global level. Global transforms don't have a name, but can be matched to both the target lexis, and the etymon.
+#[derive(Clone, Default, Debug)]
+pub struct GlobalTransform {
+    /// Match statement for the word under transform
+    pub lex_match: LexisMatch,
+    /// Optional match statement for the lexis's etymon
+    /// If a given word has multiple upstream etymons, libkirum will look for any matching etymon.
+    pub etymon_match: Option<LexisMatch>,
+    pub transforms: Vec<TransformFunc>
+}
+
+impl GlobalTransform {
+    ///  Transform the given lexis, or return the original unaltered lexis if the specified lexii don't meet the match statements
+    pub fn transform(&self,  lex: &mut Lexis, etymon: Option<Vec<&Lexis>>) {
+        // check to see if the etymon should allow us to transform
+        let should_trans = if let Some(ety) = etymon  {
+            if let Some(ety_match) = &self.etymon_match  {
+                ety.iter().find(|&e| ety_match.matches(e)).is_some()
+            } else {
+                true
+            }
+        } else {
+            true
+        };
+        
+        trace!("checking global transforms for {}", lex.id);
+        if self.lex_match.matches(lex) && should_trans{
+            trace!("applying global transforms to {}", lex.id);
+            for trans in &self.transforms {
+                trans.transform(lex)
+            }
+        }
+    }
+}
 
 /// Defines a series of transforms that are applied to a lexis.
 #[derive(Clone, Default)]

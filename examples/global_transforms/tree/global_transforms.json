@@ -1,0 +1,39 @@
+{
+  "words": {
+    "latin_example": {
+      "type": "word",
+      "language": "New Exemplum",
+      "definition": "an instance, model, example",
+      "part_of_speech": "noun",
+      "etymology": {
+        "etymons": [
+          {
+            "etymon": "old_word"
+          }
+        ]
+      },
+      "archaic": true,
+      "derivatives": [
+        {
+          "lexis": {
+            "language": "New Exemplum",
+            "definition": "model, example",
+            "part_of_speech": "noun",
+            "archaic": true
+          },
+          "transforms": [
+            "of-from-latin"
+          ]
+        }
+      ]
+    },
+    "old_word": {
+      "word": "aushal",
+      "type": "word",
+      "language": "Old Exemplum",
+      "definition": "To buy, remove",
+      "part_of_speech": "verb",
+      "archaic": true
+    }
+  }
+}

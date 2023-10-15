@@ -1,0 +1,31 @@
+{
+    "transforms": [
+        {
+            "transforms": [
+                {
+                    "match_replace": {
+                    "old": "au",
+                    "new": "ū"
+                    }
+                }
+                ],
+            "conditional": {
+                "etymon": {
+                    "language": {
+                        "match": {
+                            "equals":  "Old Exemplum"
+                        }
+                    }
+                },
+                "lexis": {
+                    "language": {
+                        "match": {
+                            "equals":  "New Exemplum"
+                        }
+                    }
+                }
+            }
+        }
+    ]
+}
+    
