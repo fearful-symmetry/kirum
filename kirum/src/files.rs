@@ -3,7 +3,7 @@ use anyhow::{Result, Context, anyhow};
 use libkirum::{kirum::{LanguageTree, Lexis}, transforms::{Transform, TransformFunc, GlobalTransform}, word::{Etymology, Edge}, lexcreate::LexPhonology};
 use serde::Serialize;
 use walkdir::{WalkDir, DirEntry};
-use crate::{entries::{RawTransform, RawLexicalEntry, TransformGraph, WordGraph}, global::{RawGlobalTransform, Global}};
+use crate::{entries::{RawTransform, RawLexicalEntry, TransformGraph, WordGraph}, global::Global};
 use handlebars::Handlebars;
 
 /// contains path data for everything needed for a project

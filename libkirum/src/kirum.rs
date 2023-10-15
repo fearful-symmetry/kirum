@@ -389,7 +389,7 @@ impl LanguageTree {
 
     /// Reduce the language graph to a vector of words that match the provided function. 
     /// Returns a vector of tuples for each matching word and any associated etymological data.
-    pub fn to_vec_etymons<F>(self, filter: F) -> Vec<(Lexis, Etymology)> 
+    pub fn to_vec_etymons<F>(&self, filter: F) -> Vec<(Lexis, Etymology)> 
     where 
     F: Fn(&Lexis) -> bool,
     {
@@ -457,9 +457,7 @@ mod tests {
         tree
     }
 
-    #[test]
-    fn basic_global_transforms() {
-        Builder::new().filter_level(LevelFilter::Info).init();
+    fn create_basic_with_globals() -> LanguageTree {
         let mut test_tree = create_basic_words();
         let transforms = vec![GlobalTransform{
             lex_match: LexisMatch { id: None, word: None, 
@@ -468,17 +466,72 @@ mod tests {
                     language: Some(Value::Match(ValueMatch::Equals(EqualValue::String("gauntlet".to_string())))), ..Default::default()}),
             transforms: vec![TransformFunc::Prefix { value: "ka".into() }]
         }];
-
-        let derivative_lang = Lexis{id: "derivative_lang".to_string(), word: None, lexis_type: "word".to_string(), language: "New Gauntlet".to_string(), ..Default::default()};
-
         test_tree.global_transforms = Some(transforms);
+
+        test_tree
+
+    }
+
+    #[test]
+    fn basic_global_transforms() {
+        Builder::new().filter_level(LevelFilter::Info).init();
+        let mut test_tree = create_basic_with_globals();
+
+        let derivative_lang = Lexis{id: "derivative_lang".to_string(), 
+            word: None, lexis_type: "word".to_string(), language: "New Gauntlet".to_string(), ..Default::default()};
+
+        test_tree.connect_etymology_id(derivative_lang, "derivative_two".to_string(),
+         vec![Transform{name: "test".to_string(), lex_match: None, transforms: vec![TransformFunc::Prefix { value: Lemma::from("sur") }]}], None);
+
+        test_tree.compute_lexicon();
+        let test_word = test_tree.to_vec_etymons(|f| f.language == "New Gauntlet".to_string());
+        assert_eq!(test_word[0].0.word.clone().unwrap(), Lemma::from("kasurauwarh"))
+
+    }
+
+    #[test]
+    fn global_with_local_transform() {
+        let mut test_tree = create_basic_with_globals();
+
+        let derivative_lang = Lexis{id: "derivative_lang".to_string(), 
+            word: None, lexis_type: "word".to_string(), language: "New Gauntlet".to_string(), ..Default::default()};
+
         test_tree.connect_etymology_id(derivative_lang, "derivative_two".to_string(),
          vec![Transform{name: "test".to_string(), lex_match: None, transforms: vec![TransformFunc::Loanword]}], None);
 
         test_tree.compute_lexicon();
         let test_word = test_tree.to_vec_etymons(|f| f.language == "New Gauntlet".to_string());
         assert_eq!(test_word[0].0.word.clone().unwrap(), Lemma::from("kaauwarh"))
+    }
 
+    #[test]
+    fn global_with_downstream_transform(){
+        let mut test_tree = create_basic_with_globals();
+        let derivative_lang = Lexis{id: "derivative_lang".to_string(), word: None, 
+            lexis_type: "word".to_string(), language: "New Gauntlet".to_string(), ..Default::default()};
+
+        let derivative_new_word = Lexis{
+            id: "derivative_word".to_string(),
+            word: None,
+            lexis_type: "word".to_string(),
+            language: "New Gauntlet".to_string(),
+            ..Default::default()
+        };
+
+        test_tree.connect_etymology_id(derivative_lang, "derivative_two".to_string(),
+        vec![Transform{name: "test".to_string(), lex_match: None, transforms: vec![TransformFunc::Loanword]}], None);
+
+        test_tree.connect_etymology_id(derivative_new_word, "derivative_lang".to_string(), 
+        vec![Transform{name: "test_downstream".to_string(), lex_match: None, transforms: vec![TransformFunc::Postfix { value: "`sh".into() }]}], 
+        None);
+
+        test_tree.compute_lexicon();
+        let test_words = test_tree.to_vec_etymons(|f| f.language == "New Gauntlet".to_string());
+        assert_eq!(test_words.iter().find(|e| e.0.word == Some(Lemma::from("kaauwarh"))).is_some(), true);
+        
+
+        assert_eq!(test_words.iter().find(|e| e.0.word == Some(Lemma::from("kaauwarh`sh"))).is_some(), true);
+       
     }
 
     #[test]

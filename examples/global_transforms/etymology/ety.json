@@ -1,0 +1,20 @@
+{
+  "transforms": {
+    "of-from-latin": {
+      "transforms": [
+        {
+          "match_replace": {
+            "old": "l",
+            "new": "t"
+          }
+        },
+        {
+          "match_replace": {
+            "old": "a",
+            "new": "aa"
+          }
+        }
+      ]
+    }
+  }
+}

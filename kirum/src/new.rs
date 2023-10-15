@@ -106,7 +106,7 @@ pub fn create_new_project(name: &str) -> Result<()> {
 
     let base_globals = Global{transforms: None};
     let globals_data = serde_json::to_string_pretty(&base_globals)?;
-    let mut globals_file = File::create("globals.json").context("could not create globals file")?;
+    let mut globals_file = File::create(base.join("globals.json")).context("could not create globals file")?;
     write!(globals_file, "{}", globals_data).context("error writing globals file")?;
  
     Ok(())
