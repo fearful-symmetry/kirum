@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use anyhow::{anyhow, Result};
 use libkirum::{word::{PartOfSpeech, Etymology}, kirum::Lexis, transforms::{TransformFunc, Transform}, matching::LexisMatch, lemma::Lemma};
 use serde::{Serialize, Deserialize};
 use serde_with::skip_serializing_none;
@@ -46,8 +47,12 @@ pub struct RawLexicalEntry {
     #[serde(default = "default_archaic")]
     /// Optional user tagging
     pub archaic: bool,
+    /// Optional tags used for user-filtering
     pub tags: Option<Vec<String>>,
-    /// A tag that tells Kirum to generate the word based on the phonetic rule set specified by the tag
+    /// Optional metadata values used for filtering, and ordering.
+    /// Unlike tags, historical_metadata will be copied to any derivative words, and can be used for templating, filtering, etc
+    pub historical_metadata: Option<HashMap<String, String>>,
+    /// A key that tells Kirum to generate the word based on the phonetic rule set specified by the tag
     pub generate: Option<String>,
     /// Words that will be added as a derivative of the enclosing Lexis; any value not specified will be taken from the enclosing entry.
     pub derivatives: Option<Vec<Derivative>>
@@ -82,6 +87,7 @@ impl From<RawLexicalEntry> for Lexis{
             definition: source.definition, 
             archaic: source.archaic,
             tags: source.tags.unwrap_or(Vec::new()),
+            historical_metadata: source.historical_metadata.unwrap_or(HashMap::new()),
             word_create: source.generate
         }
     }
@@ -97,6 +103,7 @@ impl From<Lexis> for RawLexicalEntry{
             etymology: None, 
             archaic: value.archaic, 
             tags: if !value.tags.is_empty() {Some(value.tags)} else {None},
+            historical_metadata: if !value.historical_metadata.is_empty() {Some(value.historical_metadata)} else {None},
             derivatives: None,
             generate: value.word_create
         }
@@ -104,7 +111,10 @@ impl From<Lexis> for RawLexicalEntry{
 }
 
 /// take the output of a call to to_vec_etymons() and structure it like a graph json file structure
-pub fn create_json_graph<F>(lex: Vec<(Lexis, Etymology)>,mut key_gen: F) -> WordGraph
+/// If render_metadata is false, any historical_metadata fields will not be copied.
+/// This is useful in situations where we're writing out derivative values, and don't want metadata that will be 
+/// re-derived during ingest to get copied over
+pub fn create_json_graph<F>(lex: Vec<(Lexis, Etymology)>,mut key_gen: F, render_metadata: bool) -> Result<WordGraph>
     where F: FnMut(Lexis) -> String
     {
     let mut graph: HashMap<String, RawLexicalEntry> = HashMap::new();
@@ -112,9 +122,15 @@ pub fn create_json_graph<F>(lex: Vec<(Lexis, Etymology)>,mut key_gen: F) -> Word
     for (word, ety) in lex{
         let base: RawLexicalEntry = word.clone().into();
         let found_ety = if !ety.etymons.is_empty() {Some(ety)} else {None};
-        let complete = RawLexicalEntry{etymology: found_ety, ..base};
+        let mut complete = RawLexicalEntry{etymology: found_ety, ..base};
+        if !render_metadata{
+            complete.historical_metadata = None
+        }
         let key = key_gen(word);
-        graph.insert(key, complete);
-    }
-    WordGraph { words: graph }
+        let found = graph.insert(key.clone(), complete.clone());
+        if let Some(existing) = found{
+            return Err(anyhow!("Key {} already exists in map; existing: '{}' \n new:' '{}'", key, existing.definition, complete.definition))
+        }
+    };
+   Ok( WordGraph { words: graph })
 }

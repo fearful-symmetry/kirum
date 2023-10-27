@@ -49,12 +49,14 @@ pub fn create_new_project(name: &str) -> Result<()> {
         etymology: None, 
         archaic: true, 
         tags: None, 
+        historical_metadata: None,
         derivatives: None, 
         generate: None,
     });
     word_map.insert("latin_example".into(), RawLexicalEntry { 
         word: None, 
         word_type: Some("word".into()), 
+        historical_metadata: None,
         language: Some("Latin".into()), 
         definition: "an instance, model, example".into(), 
         part_of_speech: Some(libkirum::word::PartOfSpeech::Noun), 
@@ -71,6 +73,7 @@ pub fn create_new_project(name: &str) -> Result<()> {
                 etymology: None, 
                 archaic: true, 
                 tags: None, 
+                historical_metadata: None,
                 derivatives: None,
                 generate: None,
             },
