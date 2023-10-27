@@ -225,14 +225,6 @@ impl LanguageTree {
             lex_idx = Some(self.graph.add_node(lex));
         }
 
-        // trickle down metadata
-        let ety_metadata = &self.graph[ety_idx.unwrap()].historical_metadata;
-        if !ety_metadata.is_empty() {
-            let mut new = ety_metadata.clone();
-            new.extend(self.graph[lex_idx.unwrap()].historical_metadata.iter().map(|(k, v)| (k.clone(), v.clone())));
-           self.graph[lex_idx.unwrap()].historical_metadata = new;
-        }
-
         self.graph.add_edge(ety_idx.unwrap(), lex_idx.unwrap(), TreeEtymology { transforms: trans, intermediate_word: None, agglutination_order });
 
     }
