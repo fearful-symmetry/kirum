@@ -15,7 +15,7 @@ pub struct GlobalTransform {
 
 impl GlobalTransform {
     ///  Transform the given lexis, or return the original unaltered lexis if the specified lexii don't meet the match statements
-    pub fn transform(&self,  lex: &mut Lexis, etymon: Option<Vec<&Lexis>>) {
+    pub fn transform(&self,  lex: &mut Lexis, etymon: Option<&Vec<&Lexis>>) {
         // check to see if the etymon should allow us to transform
         let should_trans = if let Some(ety) = etymon  {
             if let Some(ety_match) = &self.etymon_match  {

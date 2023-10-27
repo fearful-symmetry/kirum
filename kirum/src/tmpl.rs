@@ -7,6 +7,7 @@ use anyhow::{Result, Context, anyhow};
 /// Render a dictionary from a list of words, and a template
 pub fn generate_from_tmpl(rendered_lang: Vec<Lexis>, template_file: String, rhai_files: Option<Vec<String>>) -> Result<String> {
     let mut reg = Handlebars::new();
+    reg.register_escape_fn(handlebars::no_escape);
     reg.register_helper("string_eq", Box::new(string_eq));
     reg.register_template_file("tmpl", &template_file).context(format!("could not add template file {}", template_file))?;
     if let Some(files) = rhai_files{

@@ -13,7 +13,7 @@ use clap::Parser;
 use entries::create_json_graph;
 use files::{read_and_compute, apply_def_vars};
 use new::create_new_project;
-use anyhow::Result;
+use anyhow::{Result, Context};
 use stat::gen_stats;
 use std::{fs::File, io::Write};
 //use csv::WriterBuilder;
@@ -84,7 +84,8 @@ fn main() -> Result<()> {
                 },
                 cli::Format::Json => {
                     let words = computed.to_vec_etymons(|_|true);
-                    let word_data = create_json_graph(words, |l| l.id);
+                    let word_data = create_json_graph(words, |l| l.id, false)
+                    .context("could not create map from language data")?;
                     serde_json::to_string_pretty(&word_data)?
                 }
                 

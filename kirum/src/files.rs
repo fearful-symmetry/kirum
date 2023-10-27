@@ -89,6 +89,7 @@ pub fn read_tree_files(files: &Vec<PathBuf>) -> Result<HashMap<String, RawLexica
                             etymons: vec![Edge{etymon: lex_name.to_string(), 
                             transforms: der.transforms.clone(),
                             agglutination_order: None}] }),
+                        historical_metadata: node.historical_metadata.clone(),
                         ..der.lexis.clone()
                     };
                     language_map.insert(der_id, der_lex_raw);

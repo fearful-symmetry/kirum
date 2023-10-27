@@ -74,6 +74,7 @@ A Tree file is a JSON object of `Lexis` objects, a maximal example of which is p
         ]
       },
       "archaic": true, //optional. Used only for sorting and filtering.
+      "historical_metadata": {"metadata_value":"value"} // Optional historical metadata. Unlike tags, historical metadata is inherited from any etymons. Can also be used for sorting and templates.
       "tags": [ // optional, user-supplied tags.
         "example",
         "default"

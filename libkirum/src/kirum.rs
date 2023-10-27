@@ -11,7 +11,7 @@ use petgraph::stable_graph::NodeIndex;
 use petgraph::Graph;
 use log::{trace, debug};
 
-#[derive(Clone, Default, PartialEq, serde::Deserialize, serde::Serialize)]
+#[derive(Clone, Default,  serde::Deserialize, serde::Serialize)]
 /// A Lexis represents a headword in Kirum's lexicon, be it a word, word stem, morpheme, etc.
 pub struct Lexis {
     /// Optional ID for the lex, used by connect_etymology_id
@@ -32,12 +32,34 @@ pub struct Lexis {
     /// Optional user-supplied tags
     //#[serde(skip)]
     pub tags: Vec<String>,
+    /// Optional user-supplied metadata. Unlike tags, historical_metadata will trickle down to any derivative words.
+    /// This shared metadata can be used to track common qualities of words, for filtering, templating, etc
+    pub historical_metadata: HashMap<String, String>,
     /// Optional field that can be used to randomly generate a word value if none exists, separate from any etymology.
     /// If the given word has no etymology, this value takes prescience.
     /// The string value is used to generate a word based on the underlying phonology rules supplied to the TreeEtymology structure.
     pub word_create: Option<String>
 }
 
+// this custom implementation exists because we don't want history metadata to count towards equality
+// as the metadata field might shift while the graph is still being built.
+impl PartialEq for Lexis {
+    fn eq(&self, other: &Self) -> bool {
+        self.id == other.id &&
+        self.word == other.word &&
+        self.language == other.language &&
+        self.pos == other.pos &&
+        self.lexis_type == other.lexis_type && 
+        self.definition == other.definition && 
+        self.archaic == other.archaic &&
+        self.tags == other.tags && 
+        self.word_create == other.word_create
+
+    }
+    fn ne(&self, other: &Self) -> bool {
+        ! self.eq(other)
+    }
+}
 
 impl std::fmt::Debug for Lexis {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -194,11 +216,21 @@ impl LanguageTree {
             }
         }
 
+
+        if ety_idx.is_none(){
+            ety_idx = Some(self.graph.add_node(etymon));
+        }
+ 
         if lex_idx.is_none(){
             lex_idx = Some(self.graph.add_node(lex));
         }
-        if ety_idx.is_none(){
-            ety_idx = Some(self.graph.add_node(etymon));
+
+        // trickle down metadata
+        let ety_metadata = &self.graph[ety_idx.unwrap()].historical_metadata;
+        if !ety_metadata.is_empty() {
+            let mut new = ety_metadata.clone();
+            new.extend(self.graph[lex_idx.unwrap()].historical_metadata.iter().map(|(k, v)| (k.clone(), v.clone())));
+           self.graph[lex_idx.unwrap()].historical_metadata = new;
         }
 
         self.graph.add_edge(ety_idx.unwrap(), lex_idx.unwrap(), TreeEtymology { transforms: trans, intermediate_word: None, agglutination_order });
@@ -216,6 +248,8 @@ impl LanguageTree {
             None => false
         }
     }
+
+
     /// Fill out the graph, walking the structure until all possible lexii have been generated or updated.
     /// This method is idempotent, and can be run any time to calculate unpopulated or incorrect lexii in the language tree.
     pub fn compute_lexicon(&mut self) {
@@ -267,13 +301,16 @@ impl LanguageTree {
                         self.graph[node].word = Some(rendered_word);
                         updated.insert(node, true);
 
+
+                        // merge upstream historical metadata
+                        self.combine_maps_for_lex_idx(&node);
                         // check global transforms
                         if let Some(gt) = &self.global_transforms  {
                             let mut updating = self.graph[node].clone();
+                            let etys: Vec<&Lexis> = self.graph.neighbors_directed(node, Direction::Incoming).map(|e| &self.graph[e]).collect();
                             for trans in gt {
                                 // collect the upstream etymons
-                                let etys: Vec<&Lexis> = self.graph.neighbors_directed(node, Direction::Incoming).map(|e| &self.graph[e]).collect();
-                                trans.transform(&mut updating, Some(etys));
+                                trans.transform(&mut updating, Some(&etys));
                                 trace!("updated word {:?} with global transform ", self.graph[node].id);
                             }
                             self.graph[node] = updating;
@@ -314,6 +351,17 @@ impl LanguageTree {
             }
         }
     }
+
+    fn combine_maps_for_lex_idx(&mut self,  id: &NodeIndex) {
+        let etys: Vec<Lexis> = self.graph.neighbors_directed(*id, Direction::Incoming).map(|e| self.graph[e].clone()).collect();
+        for ety in etys {
+            if !ety.historical_metadata.is_empty(){
+                self.graph[*id].historical_metadata.extend(ety.historical_metadata.iter().map(|(k, v)| (k.clone(), v.clone())));
+            }
+          
+        }
+    } 
+    
 
     /// Walk through each word in the tree, applying the walk_function closure. The closure takes a Lexis value, and returns a tuple of two optional Lexis and Transform values.
     /// If the closure returns `Some()` for the Lexis value, the enclosed Lexis will be added as a derivative word to the tree.
@@ -418,6 +466,7 @@ impl LanguageTree {
 
 }
 
+
 fn join_string_vectors(words: &mut [(i32, Lemma)]) -> Lemma{
     words.sort_by_key(|k| k.0);
     let merged: Vec<String> = words.iter().flat_map(|s| s.1.clone().chars()).collect();
@@ -435,8 +484,10 @@ mod tests {
 
 
     fn create_basic_words() -> LanguageTree {
-        let parent = Lexis{id: "parent".to_string(), word: Some("wrh".into()), language: "gauntlet".to_string(), lexis_type: "root".to_string(), ..Default::default()};
-        let derivative_one = Lexis{id: "derivative_one".to_string(), word: None, lexis_type: "word".to_string(), ..parent.clone()};
+        let parent = Lexis{id: "parent".to_string(), word: Some("wrh".into()), language: "gauntlet".to_string(), 
+        historical_metadata: HashMap::from([("test".to_string(), "t".to_string())]), lexis_type: "root".to_string(), ..Default::default()};
+        let derivative_one = Lexis{id: "derivative_one".to_string(), word: None, 
+        historical_metadata: HashMap::from([("derivative".to_string(), "one".to_string())]), lexis_type: "word".to_string(), ..parent.clone()};
         let derivative_two = Lexis{id: "derivative_two".to_string(), word: None, lexis_type: "word".to_string(), ..parent.clone()};
 
         let transform_one = Transform{name: "first_transform".to_string(), 
@@ -486,7 +537,72 @@ mod tests {
         test_tree.compute_lexicon();
         let test_word = test_tree.to_vec_etymons(|f| f.language == "New Gauntlet".to_string());
         assert_eq!(test_word[0].0.word.clone().unwrap(), Lemma::from("kasurauwarh"))
+    }
 
+    #[test]
+    fn test_metadata_derives(){
+        let mut test_tree = create_basic_with_globals();
+        test_tree.compute_lexicon();
+
+        let final_dict = test_tree.to_vec();
+        for word in final_dict {
+            assert_eq!((Some(&"t".to_string())), word.historical_metadata.get("test"))
+        }
+    }
+
+    #[test]
+    fn metadata_multiple_object() {
+        let mut test_tree = create_basic_with_globals();
+        test_tree.compute_lexicon();
+
+        let final_dict = test_tree.to_vec();
+        for word in final_dict {
+            match word.id.as_str() {
+               "parent" => {
+                    assert_eq!(HashMap::from([("test".to_string(), "t".to_string())]), word.historical_metadata)
+                },
+                "derivative_one"=> {
+                    assert_eq!(HashMap::from([("test".to_string(), "t".to_string()), ("derivative".to_string(), "one".to_string())]), word.historical_metadata)
+                }, 
+                "derivative_two" => {
+                    assert_eq!(HashMap::from([("test".to_string(), "t".to_string()), ("derivative".to_string(), "one".to_string())]), word.historical_metadata)
+                }
+                _ => {assert!(false, "bad map value in test")}
+            }
+        }
+    }
+
+    #[test]
+    fn metadata_out_of_order() {
+        let parent = Lexis{id: "parent".to_string(), word: Some("wrh".into()), language: "gauntlet".to_string(), 
+        historical_metadata: HashMap::from([("test".to_string(), "t".to_string())]), lexis_type: "root".to_string(), ..Default::default()};
+        let derivative_one = Lexis{id: "derivative_one".to_string(), word: None, 
+        historical_metadata: HashMap::from([("derivative".to_string(), "one".to_string())]), lexis_type: "word".to_string(), ..parent.clone()};
+        let derivative_two = Lexis{id: "derivative_two".to_string(), word: None, lexis_type: "word".to_string(), ..parent.clone()};
+
+        let transform_one = Transform{name: "first_transform".to_string(), 
+        lex_match: None, 
+        transforms: vec![TransformFunc::LetterArray { letters: vec![LetterArrayValues::Place(0), LetterArrayValues::Char("a".into()), LetterArrayValues::Place(1), LetterArrayValues::Place(2)] }]
+        };
+
+        let transform_two = Transform{name: "second_transform".to_string(),
+        lex_match: None,
+        transforms: vec![TransformFunc::Prefix { value: "au".into() }],
+        };
+
+        let mut tree = LanguageTree::new();
+
+        tree.add_lexis(derivative_one.clone());
+        tree.connect_etymology_id(derivative_two, derivative_one.id.clone(), vec![transform_two], None);
+        tree.connect_etymology(derivative_one, parent, vec![transform_one], None);
+
+
+        tree.compute_lexicon();
+
+        let final_dict = tree.to_vec();
+        for word in final_dict {
+            assert_eq!((Some(&"t".to_string())), word.historical_metadata.get("test"))
+        }
     }
 
     #[test]

@@ -219,6 +219,7 @@ mod tests {
         let good_input =  WordGraph {
             words: HashMap::from([(
                 "ingest-failure".to_string(), RawLexicalEntry {
+                    historical_metadata: None,
                     word: None,
                     word_type: None,
                     language: None,
@@ -241,6 +242,7 @@ mod tests {
                     derivatives: None,
                     }),
                 ("ingest-grab".to_string(), RawLexicalEntry {
+                    historical_metadata: None,
                     word: None,
                     word_type: None,
                     language: None,
@@ -253,6 +255,7 @@ mod tests {
                     derivatives: None,
                 }),
                 ("ingest-fail".to_string(), RawLexicalEntry {
+                    historical_metadata: None,
                     word: None,
                     word_type: None,
                     language: None,
@@ -265,6 +268,7 @@ mod tests {
                     derivatives: None,
                 }),
                 ("ingest-twistable".to_string(), RawLexicalEntry {
+                    historical_metadata: None,
                     word: None,
                     word_type: None,
                     language: None,
@@ -291,6 +295,7 @@ mod tests {
                     derivatives: None,
                 }),
                 ("ingest-failing".to_string(), RawLexicalEntry {
+                    historical_metadata: None,
                     word: None,
                     word_type: None,
                     language: None,
@@ -312,7 +317,8 @@ mod tests {
                     generate: None,
                     derivatives: None,
                 }),
-                ("ingest-unretwistable".to_string(), RawLexicalEntry {
+                ("ingest-unretwistable".to_string(), RawLexicalEntry {  
+                    historical_metadata: None,
                     word: None,
                     word_type: None,
                     language: None,
@@ -335,6 +341,7 @@ mod tests {
                     derivatives: None,
                 }),
                 ("ingest-untwistable".to_string(), RawLexicalEntry {
+                    historical_metadata: None,
                     word: None,
                     word_type: None,
                     language: None,
@@ -357,6 +364,7 @@ mod tests {
                     derivatives: None,
                 }),
                 ("ingest-twist".to_string(), RawLexicalEntry {
+                    historical_metadata: None,
                     word: None,
                     word_type: None,
                     language: None,
@@ -369,6 +377,7 @@ mod tests {
                     derivatives: None,
                 }),
                 ("ingest-retwistable".to_string(), RawLexicalEntry {
+                    historical_metadata: None,
                     word: None,
                     word_type: None,
                     language: None,
@@ -391,6 +400,7 @@ mod tests {
                     derivatives: None,
                 }),
                 ("ingest-attack".to_string(), RawLexicalEntry {
+                    historical_metadata: None,
                     word: None,
                     word_type: None,
                     language: None,
@@ -403,6 +413,7 @@ mod tests {
                     derivatives: None,
                 }),
                 ("ingest-attacked".to_string(), RawLexicalEntry {
+                    historical_metadata: None,
                     word: None,
                     word_type: None,
                     language: None,
@@ -425,6 +436,7 @@ mod tests {
                     derivatives: None,
                 }),
                 ("ingest-attacking".to_string(), RawLexicalEntry {
+                    historical_metadata: None,
                     word: None,
                     word_type: None,
                     language: None,

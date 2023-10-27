@@ -187,6 +187,8 @@ pub enum WhenMatch{
 #[cfg(test)]
 mod tests {
 
+    use std::collections::HashMap;
+
     use crate::errors::LangError;
     use crate::kirum::Lexis;
     use crate::matching::{Value, ValueMatch, LexisMatch, EqualValue};
@@ -203,6 +205,7 @@ mod tests {
         definition: "".to_string(),
         archaic: false,
         tags: vec!["tag1".to_string(), "tag2".to_string()],
+        historical_metadata: HashMap::new(),
         word_create: None
         }; 
 
