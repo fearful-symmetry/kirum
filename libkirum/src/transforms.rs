@@ -122,11 +122,11 @@ impl TransformFunc{
         if let Some(current) = current_word.word.as_mut() {
             match self {
                 TransformFunc::LetterReplace{ letter, replace } => {
-                    debug!("got LetterReplace for {}", current_word.id);
-                   current.replace(&letter.old, &letter.new, replace)
+                   current.replace(&letter.old, &letter.new, replace);
+                   debug!("got LetterReplace:{:?} ({:?}) for {}; updated: {}", replace, letter, current_word.id, &current.string_without_sep());
                 },
                 TransformFunc::LetterArray { letters } => {
-                    debug!("got LetterArray for {}", current_word.id);
+                    debug!("got LetterArray ({:?}) for {}", letters, current_word.id);
                     current.modify_with_array(letters) 
                 },
                 TransformFunc::Postfix { value } => {
@@ -194,6 +194,25 @@ pub enum LetterArrayValues{
 mod tests {
     use crate::transforms::{TransformFunc, LetterValues, LetterPlaceType, LetterArrayValues};
     use crate::kirum::Lexis;
+
+    use super::Transform;
+
+    #[test]
+    fn test_replace_all_multiple_matches() {
+        let mut word = Lexis{word: Some("kirum".into()), ..Default::default()};
+        let transform = Transform{
+            name: "test".to_string(),
+            lex_match: None,
+            transforms: vec![
+                TransformFunc::LetterReplace { letter: LetterValues { old: "k".to_string(), new: "o".to_string() }, replace: LetterPlaceType::All },
+                TransformFunc::LetterReplace { letter: LetterValues { old: "m".to_string(), new: "n".to_string() }, replace: LetterPlaceType::All },
+            ]
+        };
+
+        transform.transform(&mut word);
+
+        assert_eq!(word.word.unwrap().string_without_sep(), "oirun".to_string())
+    }
 
     #[test]
     fn test_letter_replace(){
