@@ -30,5 +30,5 @@ that can be used in a script to transform a word selectively based on the word's
 To render the test, run:
 
 ```bash
-kirum render -d ./ line
+kirum render -d ./examples/rhai line
 ```
