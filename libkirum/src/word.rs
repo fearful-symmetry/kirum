@@ -6,8 +6,11 @@ use serde_with::skip_serializing_none;
 use crate::errors;
 
 /// The possible Part Of Speech values for a Lexis
-#[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq)]
+#[derive(Debug, Default, Clone, Copy, Deserialize, Serialize, PartialEq)]
 pub enum PartOfSpeech {
+    #[serde(rename(deserialize= "none", serialize="none"))]
+    #[default]
+    None,
     #[serde(rename(deserialize= "noun", serialize="noun"))]
     Noun,
     #[serde(rename(deserialize="verb", serialize="verb"))]
@@ -36,7 +39,8 @@ impl std::string::ToString for PartOfSpeech{
         match self{
             Self::Adjective => "adjective".to_string(),
             Self::Noun => "noun".to_string(),
-            Self::Verb => "verb".to_string()
+            Self::Verb => "verb".to_string(),
+            Self::None => "none".to_string()
         }
     }
 }

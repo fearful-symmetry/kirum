@@ -8,6 +8,7 @@ struct Stats {
     nouns: i64,
     verbs: i64,
     adjectives: i64,
+    none: i64,
     total: usize
 }
 
@@ -21,7 +22,8 @@ pub fn gen_stats(tree: LanguageTree) -> String {
             match pos {
                 libkirum::word::PartOfSpeech::Adjective => stats.adjectives+=1,
                 libkirum::word::PartOfSpeech::Verb => stats.verbs+=1,
-                libkirum::word::PartOfSpeech::Noun => stats.nouns+=1
+                libkirum::word::PartOfSpeech::Noun => stats.nouns+=1,
+                libkirum::word::PartOfSpeech::None => stats.none+=1
             }
         }
         let lang_name = match lex.language.as_str() {

@@ -1,0 +1,18 @@
+{
+    "words": {
+        "late": {
+            "language": "Exemplum", "definition": "the final word",
+            "etymology": {"etymons": [{"etymon": "middle", "transforms": ["from-middle"]}]
+            }
+        },
+        "middle": {
+            "language": "Exemplum", "definition": "The middle word",
+            "etymology": {"etymons": [{"etymon": "root-word", "transforms":["from-root"]}]}
+        },
+        "root-word": {
+            "word": "kratia", "language": "Greek", "definition": "power, rule",
+            "tags": ["example"],
+            "historical_metadata": {"word": "example"}
+        }
+    }
+}

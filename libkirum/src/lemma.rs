@@ -1,6 +1,7 @@
+use rhai::{Array, Dynamic};
 use serde::{Serialize, Deserialize, de::Visitor};
 use unicode_segmentation::UnicodeSegmentation;
-use crate::transforms::{LetterPlaceType, LetterArrayValues};
+use crate::{errors::LemmaFromError, transforms::{LetterArrayValues, LetterPlaceType}};
 use regex::Regex;
 use log::error;
 
@@ -132,6 +133,40 @@ impl From<Lemma> for Vec<String> {
     }
 }
 
+/// converts the Lemma into an Rhai array
+impl From<Lemma> for Dynamic {
+    fn from(value: Lemma) -> Self {
+        let arr: Vec<String> = value.into();
+        arr.into()
+    }
+}
+
+impl TryFrom<Dynamic> for Lemma{
+    type Error = LemmaFromError;
+    fn try_from(value: Dynamic) -> Result<Self, Self::Error> {
+        if value.is_array(){
+            let lem_vec: Array = value.cast();
+            let mut lem_acc: Vec<String> = Vec::new();
+            for item in lem_vec.iter(){
+                if item.is_string() {
+                    lem_acc.push(item.clone().cast::<String>())
+                } else if item.is_char() {
+                    let raw = item.clone().cast::<char>();
+                    lem_acc.push(raw.to_string())
+                } else {
+                    return Err(LemmaFromError { dyn_type: item.type_name().to_string() })
+                }
+            }
+            Ok(lem_acc.into())
+        } else if value.is_string() {
+            let lem_str: String = value.cast();
+            Ok(lem_str.into())
+        } else {
+            Err(LemmaFromError{dyn_type: value.type_name().to_string()})
+        }
+    }
+}
+
 
 impl Lemma {
     /// returns the length of the lemma
@@ -143,6 +178,8 @@ impl Lemma {
     pub fn is_empty(&self) -> bool{
         self.value.is_empty()
     }
+
+
     /// appends a new lemma
     pub fn push(&mut self, pushed: Lemma) {
         if !self.is_empty(){

@@ -51,5 +51,8 @@ jobs:
     - name: Post-ingest render 
       run: cargo run -- render -d examples/ingest_from_json/empty_language line
 
+    - name: rhai
+      run: cargo run -- render -d examples/rhai line
+
     - name: Globals
       run: cargo run -- render -d examples/global_transforms line

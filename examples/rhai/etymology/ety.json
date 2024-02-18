@@ -1,0 +1,14 @@
+{
+    "transforms": {
+        "from-root" : {
+            "transforms": [
+                {"rhai_script": {"file": "rhai/string_transform.rhai"}}
+            ]
+        },
+        "from-middle": {
+            "transforms": [
+                {"rhai_script": {"file": "rhai/array_transform.rhai"}}
+            ]
+        }
+    }
+}

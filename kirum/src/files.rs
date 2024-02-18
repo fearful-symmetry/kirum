@@ -240,7 +240,7 @@ pub fn read_and_compute(directory: Option<String>) -> Result<LanguageTree>{
     info!("Reading in existing language files...");
     let mut lang_tree = read_from_files(new_project)?;
     info!("rendering tree...");
-    lang_tree.compute_lexicon();
+    lang_tree.compute_lexicon()?;
     Ok(lang_tree)
 }
 

@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use crate::errors::TransformError;
 use crate::lemma::Lemma;
 use crate::lexcreate;
 use crate::transforms::{Transform, GlobalTransform};
@@ -97,14 +98,13 @@ pub struct TreeEtymology {
 
 impl TreeEtymology{
     /// a helper function to apply the given lexis to all transforms in the graph edge
-    fn apply_transforms(&self, etymon: &mut Lexis) {
+    fn apply_transforms(&self, etymon: &mut Lexis) -> Result<(), TransformError>{
 
         //let mut transformed = etymon.clone();
         for trans in self.transforms.clone(){
-            trans.transform(etymon);
-        }
-
-        //transformed
+            trans.transform(etymon)?;
+        };
+        Ok(())
     }
 
     /// A helper function that returns a vector of all names transforms in the graph edges
@@ -244,7 +244,7 @@ impl LanguageTree {
 
     /// Fill out the graph, walking the structure until all possible lexii have been generated or updated.
     /// This method is idempotent, and can be run any time to calculate unpopulated or incorrect lexii in the language tree.
-    pub fn compute_lexicon(&mut self) {
+    pub fn compute_lexicon(&mut self) -> Result<(), TransformError> {
         let mut incomplete = true;
         let mut updated: HashMap<NodeIndex, bool> = HashMap::new();
         while incomplete{
@@ -302,7 +302,7 @@ impl LanguageTree {
                             let etys: Vec<&Lexis> = self.graph.neighbors_directed(node, Direction::Incoming).map(|e| &self.graph[e]).collect();
                             for trans in gt {
                                 // collect the upstream etymons
-                                trans.transform(&mut updating, Some(&etys));
+                                trans.transform(&mut updating, Some(&etys))?;
                                 trace!("updated word {:?} with global transform ", self.graph[node].id);
                             }
                             self.graph[node] = updating;
@@ -326,7 +326,7 @@ impl LanguageTree {
                             continue
                         }
                         let mut temp_ref = self.graph[node].clone();
-                        self.graph[edge].apply_transforms(&mut temp_ref);
+                        self.graph[edge].apply_transforms(&mut temp_ref)?;
                         //self.graph[node] = temp_ref;
                         trace!("updated edge with word {:?}", temp_ref.word);
 
@@ -341,7 +341,8 @@ impl LanguageTree {
             if changes == 0 {
                 incomplete = false;
             }
-        }
+        };
+        Ok(())
     }
 
     fn combine_maps_for_lex_idx(&mut self,  id: &NodeIndex) {
@@ -374,7 +375,7 @@ impl LanguageTree {
     pub fn generate_daughter_language<F, P>(&mut self, daughter_name: String, 
         daughter_transforms: Vec<Transform>, 
         mut apply_to: F, 
-        mut postprocess: P) 
+        mut postprocess: P) -> Result<(), TransformError>
     where
     F: FnMut(&Lexis) -> bool,
     P: FnMut(&Lexis) -> Lexis,
@@ -385,7 +386,7 @@ impl LanguageTree {
                 let mut applied_transforms: Vec<Transform> = Vec::new();
                 let mut found_updated: Lexis = self.graph[node].clone();
                 for trans in &daughter_transforms {
-                    let updated = trans.transform_option(&mut found_updated);
+                    let updated = trans.transform_option(&mut found_updated)?;
                     if updated {
                         applied_transforms.push(trans.clone());
                         //found_updated = upd;
@@ -399,7 +400,8 @@ impl LanguageTree {
                 self.graph.add_edge(node, new_node, TreeEtymology { transforms: applied_transforms, ..Default::default() });
                 
             }
-        }
+        };
+        Ok(())
     }
 
     
@@ -526,7 +528,7 @@ mod tests {
         test_tree.connect_etymology_id(derivative_lang, "derivative_two".to_string(),
          vec![Transform{name: "test".to_string(), lex_match: None, transforms: vec![TransformFunc::Prefix { value: Lemma::from("sur") }]}], None);
 
-        test_tree.compute_lexicon();
+        test_tree.compute_lexicon().unwrap();
         let test_word = test_tree.to_vec_etymons(|f| f.language == "New Gauntlet".to_string());
         assert_eq!(test_word[0].0.word.clone().unwrap(), Lemma::from("kasurauwarh"))
     }
@@ -534,7 +536,7 @@ mod tests {
     #[test]
     fn test_metadata_derives(){
         let mut test_tree = create_basic_with_globals();
-        test_tree.compute_lexicon();
+        test_tree.compute_lexicon().unwrap();
 
         let final_dict = test_tree.to_vec();
         for word in final_dict {
@@ -545,7 +547,7 @@ mod tests {
     #[test]
     fn metadata_multiple_object() {
         let mut test_tree = create_basic_with_globals();
-        test_tree.compute_lexicon();
+        test_tree.compute_lexicon().unwrap();
 
         let final_dict = test_tree.to_vec();
         for word in final_dict {
@@ -589,7 +591,7 @@ mod tests {
         tree.connect_etymology(derivative_one, parent, vec![transform_one], None);
 
 
-        tree.compute_lexicon();
+        tree.compute_lexicon().unwrap();
 
         let final_dict = tree.to_vec();
         for word in final_dict {
@@ -607,7 +609,7 @@ mod tests {
         test_tree.connect_etymology_id(derivative_lang, "derivative_two".to_string(),
          vec![Transform{name: "test".to_string(), lex_match: None, transforms: vec![TransformFunc::Loanword]}], None);
 
-        test_tree.compute_lexicon();
+        test_tree.compute_lexicon().unwrap();
         let test_word = test_tree.to_vec_etymons(|f| f.language == "New Gauntlet".to_string());
         assert_eq!(test_word[0].0.word.clone().unwrap(), Lemma::from("kaauwarh"))
     }
@@ -633,7 +635,7 @@ mod tests {
         vec![Transform{name: "test_downstream".to_string(), lex_match: None, transforms: vec![TransformFunc::Postfix { value: "`sh".into() }]}], 
         None);
 
-        test_tree.compute_lexicon();
+        test_tree.compute_lexicon().unwrap();
         let test_words = test_tree.to_vec_etymons(|f| f.language == "New Gauntlet".to_string());
         assert_eq!(test_words.iter().find(|e| e.0.word == Some(Lemma::from("kaauwarh"))).is_some(), true);
         
@@ -690,7 +692,7 @@ mod tests {
         tree.connect_etymology(derivative_one.clone(), parent, vec![transform_one], None);
         tree.connect_etymology(derivative_two, derivative_one, vec![transform_two], None);
         tree.word_creator_phonology = test_phon_rules;
-        tree.compute_lexicon();
+        tree.compute_lexicon().unwrap();
 
         let gen_parent = tree.get_by_id("parent").unwrap().word.unwrap().chars();
         let der_two = tree.get_by_id("derivative_two");
@@ -706,7 +708,7 @@ mod tests {
     fn test_basic_tree(){
         let mut tree = create_basic_words();
 
-        tree.compute_lexicon();
+        tree.compute_lexicon().unwrap();
 
         let out = tree.to_vec();
         println!("got words: {:?}", out);
@@ -729,7 +731,7 @@ mod tests {
         tree.connect_etymology(combined_word.clone(), parent_part, agg_transform.clone(), Some(0));
         tree.connect_etymology_id(combined_word, "derivative_one".to_string(), agg_transform , Some(1));
 
-        tree.compute_lexicon();
+        tree.compute_lexicon().unwrap();
         let out = tree.to_vec();
         println!("got words: {:?}", out);
         let out_words: Vec<String> = out.into_iter().map(|l| l.word.unwrap_or_default().string_without_sep()).collect();
@@ -750,7 +752,7 @@ mod tests {
         let mut tree = create_basic_words();
         tree.connect_etymology(root, proto_word, vec![proto_transform], None);
 
-        tree.compute_lexicon();
+        tree.compute_lexicon().unwrap();
         let out = tree.to_vec();
         let out_words: Vec<String> = out.into_iter().map(|l| l.word.unwrap_or_default().string_without_sep()).collect();
 
@@ -765,9 +767,9 @@ mod tests {
     fn test_idempotent(){
         let mut tree = create_basic_words();
 
-        tree.compute_lexicon();
+        tree.compute_lexicon().unwrap();
         // run again
-        tree.compute_lexicon();
+        tree.compute_lexicon().unwrap();
 
         let out = tree.to_vec();
         println!("got words: {:?}", out);
@@ -789,7 +791,7 @@ mod tests {
         tree.add_lexis(parent);
         tree.add_lexis(lex_one);
         tree.add_lexis(lex_two);
-        tree.compute_lexicon();
+        tree.compute_lexicon().unwrap();
 
         let out = tree.to_vec();
 
@@ -821,9 +823,10 @@ mod tests {
             ]
         }];
 
-        tree.compute_lexicon();
+        tree.compute_lexicon().unwrap();
 
-        tree.generate_daughter_language("High Gauntlet".to_string(), daughter_transforms, |lex|lex.language == "gauntlet".to_string(), |lex| Lexis {tags: vec!["tested".to_string()], ..lex.clone() });
+        tree.generate_daughter_language("High Gauntlet".to_string(), 
+        daughter_transforms, |lex|lex.language == "gauntlet".to_string(), |lex| Lexis {tags: vec!["tested".to_string()], ..lex.clone() }).unwrap();
 
         let out = tree.to_vec();
         println!("got words: {:?}", out);
