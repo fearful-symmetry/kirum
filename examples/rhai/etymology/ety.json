@@ -2,12 +2,12 @@
     "transforms": {
         "from-root" : {
             "transforms": [
-                {"rhai_script": {"file": "rhai/string_transform.rhai"}}
+                {"rhai_script": {"file": "examples/rhai/rhai/string_transform.rhai"}}
             ]
         },
         "from-middle": {
             "transforms": [
-                {"rhai_script": {"file": "rhai/array_transform.rhai"}}
+                {"rhai_script": {"file": "examples/rhai/rhai/array_transform.rhai"}}
             ]
         }
     }
