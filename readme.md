@@ -8,6 +8,7 @@ The [bureaucracy](examples/bureaucracy/) example demonstrates this by generating
 
 Kirum is a work in progress, and should be considered alpha software.
 
+
 ## Installing
 
 If you haven't already, install [rust](https://rustup.rs/) and [git](https://github.com/git-guides/install-git). Once you've cloned the repo, install with
@@ -45,6 +46,7 @@ The [`examples`](examples) directory has a number of projects:
 - [conditionals](examples/conditionals/) - Using conditional statements in transforms.
 - [phonetic_rules](examples/phonetic_rules/) - Using Kirum's phonetic rulesets to generate words.
 - [ingest_from_json](examples/ingest_from_json/) - Ingesting words into a language project from a JSON or newline-delimited text file.
+- [rhai](examples/rhai/) - Using the [Rhai](https://github.com/rhaiscript/rhai/tree/main) scripting language to transform words as part of an etymological history.
 
 
 ## The structure of a Kirum project
