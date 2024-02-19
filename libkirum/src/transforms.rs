@@ -1,5 +1,8 @@
+use std::fmt::Display;
+
+use rhai::{Dynamic, Scope};
 use serde::{Deserialize, Serialize};
-use crate::{matching::LexisMatch, kirum::Lexis, lemma::Lemma};
+use crate::{errors::TransformError, kirum::Lexis, lemma::Lemma, matching::LexisMatch};
 use log::{debug, trace};
 
 /// Specifies a transform at a global level. Global transforms don't have a name, but can be matched to both the target lexis, and the etymon.
@@ -15,7 +18,7 @@ pub struct GlobalTransform {
 
 impl GlobalTransform {
     ///  Transform the given lexis, or return the original unaltered lexis if the specified lexii don't meet the match statements
-    pub fn transform(&self,  lex: &mut Lexis, etymon: Option<&Vec<&Lexis>>) {
+    pub fn transform(&self,  lex: &mut Lexis, etymon: Option<&Vec<&Lexis>>) -> Result<(), TransformError> {
         // check to see if the etymon should allow us to transform
         let should_trans = if let Some(ety) = etymon  {
             if let Some(ety_match) = &self.etymon_match  {
@@ -31,9 +34,10 @@ impl GlobalTransform {
         if self.lex_match.matches(lex) && should_trans{
             trace!("applying global transforms to {}", lex.id);
             for trans in &self.transforms {
-                trans.transform(lex)
+                trans.transform(lex)?
             }
-        }
+        };
+        Ok(())
     }
 }
 
@@ -54,12 +58,13 @@ impl std::fmt::Debug for Transform {
 
 impl Transform{
     /// Transform the given lexis, or return the original unaltered lexis if the lex_match resolves to false.
-    pub fn transform(&self, etymon: &mut Lexis) {
-        self.transform_option(etymon);
+    pub fn transform(&self, etymon: &mut Lexis) -> Result<(), TransformError> {
+        self.transform_option(etymon)?;
+        Ok(())
     }
 
     // Transform the given lexis, or return None if the lex_match condition evaluates to false
-    pub fn transform_option(&self, etymon: &mut Lexis) -> bool {
+    pub fn transform_option(&self, etymon: &mut Lexis) -> Result<bool, TransformError> {
         let can_transform = if let Some(lex_match) = &self.lex_match{
             lex_match.matches(etymon)
         } else {
@@ -68,11 +73,11 @@ impl Transform{
         //let mut updated = etymon.clone();
         if can_transform{
             for transform in &self.transforms {
-                transform.transform(etymon); 
+                transform.transform(etymon)?; 
             };
-            true
+            Ok(true)
         } else{
-            false
+            Ok(false)
         }
     }
 }
@@ -110,14 +115,56 @@ pub enum TransformFunc {
     DeDouble{letter: String, position: LetterPlaceType},
     /// replace a matching substring
     #[serde(rename="match_replace")]
-    MatchReplace{old: Lemma, new: Lemma}
+    MatchReplace{old: Lemma, new: Lemma},
+
+    /// Transform a word using an rhai file.
+    /// The rhai script should return a string of the updated word
+    #[serde(rename="rhai_script")]
+    RhaiScript{file: String}
+}
+
+impl Display for TransformFunc {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            TransformFunc::LetterReplace { letter, replace: _ } => {
+                write!(f, "LetterReplace ({:?})", letter)
+            },
+            TransformFunc::Postfix { value } => {
+                write!(f, "Postfix ({})", value.to_string())
+            },
+            TransformFunc::Prefix { value } => {
+                write!(f, "Prefix ({})", value.to_string())
+            },
+            TransformFunc::Loanword => {
+                write!(f, "Loanword")
+            },
+            TransformFunc::LetterRemove { letter, position:  _ } => {
+                write!(f, "LetterRemove ({})", letter)
+            },
+            TransformFunc::Double { letter, position: _ } => {
+                write!(f, "Double ({})", letter)
+            },
+            TransformFunc::DeDouble { letter, position: _ } => {
+                write!(f, "DeDouble ({})", letter)
+            },
+            TransformFunc::MatchReplace { old, new } => {
+                write!(f, "MatchReplace ({} > {})", old.to_string(), new.to_string())
+            },
+            TransformFunc::RhaiScript { file } => {
+                write!(f, "RhaiScript ({})", file)
+            },
+            TransformFunc::LetterArray { letters } => {
+                write!(f, "LetterArray ({:?})", letters)
+            }
+        }
+    }
 }
 
 
 impl TransformFunc{
-    pub fn transform(&self, current_word: &mut Lexis) {
+    pub fn transform(&self, current_word: &mut Lexis) -> Result<(), TransformError> {
         if current_word.word.is_none(){
-            return
+            return Ok(())
         }
         if let Some(current) = current_word.word.as_mut() {
             match self {
@@ -155,11 +202,28 @@ impl TransformFunc{
                 },
                 TransformFunc::MatchReplace { old, new } => {
                     current.match_replace(old, new)
+                },
+                TransformFunc::RhaiScript { file } => {
+                    let engine = rhai::Engine::new();
+                    let mut scope = Scope::new();
+
+                    let lemma_array: Dynamic = current.clone().into();
+                    let tags_array: Dynamic = current_word.tags.clone().into();
+                    let metadata_object: Dynamic = current_word.historical_metadata.clone().into();
+
+                    scope.push("language", current_word.language.clone());
+                    scope.push("tags", tags_array);
+                    scope.push("metadata", metadata_object);
+                    scope.push("pos", current_word.pos.unwrap_or_default().to_string());
+                    scope.push("lemma_array", lemma_array);
+                    scope.push("lemma_string", current.clone().string_without_sep());
+
+                    let updated: Lemma = engine.eval_file_with_scope::<Dynamic>(&mut scope, file.into())?.try_into()?;
+                    *current = updated.into();
                 }
             };
-        }
-
-        //Lexis{word: Some(new_word), ..current_word.clone()}
+        };
+        Ok(())
     }
 
 }
@@ -194,8 +258,96 @@ pub enum LetterArrayValues{
 mod tests {
     use crate::transforms::{TransformFunc, LetterValues, LetterPlaceType, LetterArrayValues};
     use crate::kirum::Lexis;
-
+    use crate::word::PartOfSpeech;
     use super::Transform;
+
+    fn rhai_setup() -> Lexis {
+        Lexis{
+            language: "testlang".to_string(),
+            word: Some("example".into()), 
+            pos: Some(PartOfSpeech::Noun),
+            tags: vec!["test".to_string()],
+            historical_metadata: [("test".to_string(), "true".to_string())].into(),
+            ..Default::default()}
+    }
+
+    #[test]
+    fn test_rhai_script_metadata_tags() {
+        let mut word = rhai_setup();
+        let transform = Transform{
+            name: "test".to_string(),
+            lex_match: None,
+            transforms: vec![
+                TransformFunc::RhaiScript { file: "testfiles/basic.rhai".to_string() }
+            ]
+        };
+        transform.transform(&mut word).unwrap();
+        assert_eq!(word.word.unwrap().string_without_sep(), "example-test&map:true".to_string())
+    }
+
+    #[test]
+    fn test_rhai_return_array() {
+        let mut word = rhai_setup();
+        let transform = Transform{
+            name: "test".to_string(),
+            lex_match: None,
+            transforms: vec![
+                TransformFunc::RhaiScript { file: "testfiles/return_array.rhai".to_string() }
+            ]
+        };
+        transform.transform(&mut word).unwrap();
+        assert_eq!(word.word.unwrap().string_without_sep(), "+e+x+a+m+p+l+e".to_string())
+    }
+
+    #[test]
+    fn test_rhai_pos() {
+        let mut word = rhai_setup();
+        let transform = Transform{
+            name: "test".to_string(),
+            lex_match: None,
+            transforms: vec![
+                TransformFunc::RhaiScript { file: "testfiles/pos.rhai".to_string() }
+            ]
+        };
+        transform.transform(&mut word).unwrap();
+        assert_eq!(word.word.unwrap().string_without_sep(), "example-noun".to_string())
+    }
+
+    #[test]
+    fn test_rhai_language() {
+        let mut word = rhai_setup();
+        let transform = Transform{
+            name: "test".to_string(),
+            lex_match: None,
+            transforms: vec![
+                TransformFunc::RhaiScript { file: "testfiles/language.rhai".to_string() }
+            ]
+        };
+        transform.transform(&mut word).unwrap();
+        assert_eq!(word.word.unwrap().string_without_sep(), "example-testlang".to_string())
+    }
+
+    #[test]
+    fn test_rhai_complex_unicode_lemma() {
+        let mut word = Lexis{
+            language: "testlang".to_string(),
+            word: Some(vec!["hʷ", "a", "n"].into()), 
+            pos: Some(PartOfSpeech::Noun),
+            tags: vec!["test".to_string()],
+            historical_metadata: [("test".to_string(), "true".to_string())].into(),
+            ..Default::default()};
+
+        let transform = Transform{
+                name: "test".to_string(),
+                lex_match: None,
+                transforms: vec![
+                    TransformFunc::RhaiScript { file: "testfiles/unicode_handle.rhai".to_string() }
+            ]
+        };
+
+        transform.transform(&mut word).unwrap();
+        assert_eq!(word.word.unwrap().string_without_sep(), "hanʷ".to_string())
+    }
 
     #[test]
     fn test_replace_all_multiple_matches() {
@@ -209,7 +361,7 @@ mod tests {
             ]
         };
 
-        transform.transform(&mut word);
+        transform.transform(&mut word).unwrap();
 
         assert_eq!(word.word.unwrap().string_without_sep(), "oirun".to_string())
     }
@@ -220,7 +372,7 @@ mod tests {
         let test_transform = TransformFunc::LetterReplace { letter: letter_logic, replace:  LetterPlaceType::All};
         let mut old_word = Lexis{word: Some("kurum".into()), ..Default::default() };
         
-        test_transform.transform(&mut old_word);
+        test_transform.transform(&mut old_word).unwrap();
         //let compare: Word = "karam".into();
         assert_eq!("karam".to_string(), old_word.word.unwrap().string_without_sep());
     }
@@ -230,7 +382,7 @@ mod tests {
         let test_transform = TransformFunc::LetterArray { letters: vec![LetterArrayValues::Place(0), LetterArrayValues::Place(1),  LetterArrayValues::Char("u".to_string())] };
         let mut old_word =  Lexis{word: Some("krm".into()), ..Default::default() };
 
-        test_transform.transform(&mut old_word);
+        test_transform.transform(&mut old_word).unwrap();
         assert_eq!("kru".to_string(), old_word.word.unwrap().string_without_sep());
 
     }
@@ -240,7 +392,7 @@ mod tests {
         let test_transform = TransformFunc::Postfix { value: "uh".into() };
         let mut old_word = Lexis{word: Some("kurum".into()), ..Default::default()};
 
-        test_transform.transform(&mut old_word);
+        test_transform.transform(&mut old_word).unwrap();
         assert_eq!("kurumuh".to_string(), old_word.word.unwrap().string_without_sep())
     }
 
@@ -249,7 +401,7 @@ mod tests {
         let test_transform = TransformFunc::Prefix { value: "tur".into() };
         let mut old_word = Lexis{word: Some("kurum".into()), ..Default::default()};
 
-        test_transform.transform(&mut old_word);
+        test_transform.transform(&mut old_word).unwrap();
         assert_eq!("turkurum".to_string(), old_word.word.unwrap().string_without_sep());
     }
 
